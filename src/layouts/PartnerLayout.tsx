@@ -1,40 +1,40 @@
-import {Layout} from "antd";
+import React from 'react';
+import { Layout } from 'antd';
+import { Outlet } from 'react-router-dom';
+import Header from '../components/Header';
 
-import Header from "../components/Header";
+const { Content } = Layout;
 
-interface CuratorLayoutProps {
-    children:React.ReactNode;
+interface PartnerLayoutProps {
+  children?: React.ReactNode;
 }
 
-const {
-    Content
-} = Layout;
+const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
 
-export default function CuratorLayout({
-    children
-}:CuratorLayoutProps) {
+  const menuItems = [
+    { label: 'Дашборд', path: '/partner/dashboard' },
+    { label: 'Подписки', path: '/partner/digest' },
+  ];
 
-    return (
-        <Layout>
-            <Header
-                title="Кабинет партнёра"
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <Header
+        title="Кабинет партнёра"
+        menuItems={menuItems}
+      />
+      <Content
+        style={{
+          margin: '24px 16px',
+          padding: 24,
+          minHeight: 280,
+          background: '#fff',
+          borderRadius: 8,
+        }}
+      >
+        {children ? children : <Outlet />}
+      </Content>
+    </Layout>
+  );
+};
 
-                menuItems={[
-                    {
-                        label:"Дашборд",
-                        path:"/partner/dashboard"
-                    },
-                    {
-                        label:"Подписки",
-                        path:"/partner/digest"
-                    }
-                ]}
-            />
-
-            <Content className="page-container">
-                {children}
-            </Content>
-
-        </Layout>
-    );
-}
+export default PartnerLayout;

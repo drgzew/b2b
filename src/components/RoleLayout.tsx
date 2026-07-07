@@ -1,7 +1,7 @@
 import React from "react";
 import CuratorLayout from "../layouts/CuratorLayout";
 import PartnerLayout from "../layouts/PartnerLayout";
-import ParticipiantLayout from "../layouts/ParticipantLayout";
+import ParticipantLayout from "../layouts/ParticipantLayout";
 
 interface RoleLayoutProps {
     children: React.ReactNode;
@@ -31,12 +31,13 @@ export default function RoleLayout({
 
     if (role === "participant") {
         return (
-            <ParticipiantLayout>
+            <ParticipantLayout>
                 {children}
-            </ParticipiantLayout>
+            </ParticipantLayout>
         );
     }
 
+    // Для остальных (admin, student) – просто children без Layout
     return (
         <>
             {children}

@@ -24,6 +24,8 @@ export default function Login() {
         if (values.role === "participant") {
             navigate("/participant/my-artifacts");
         }
+
+        
     }
 
     return (
