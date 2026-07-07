@@ -110,13 +110,7 @@ export default function ArtifactPage() {
     }
 
     return (
-        <Card
-            style={{
-                maxWidth: 900,
-                margin: "30px auto"
-            }}
-
-        >
+        <Card className="page-container">
             <Title level={2}>
                 {artifact.title}
             </Title>

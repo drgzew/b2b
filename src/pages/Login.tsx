@@ -20,6 +20,10 @@ export default function Login() {
         if (values.role === "curator") {
             navigate("/curator/queue");
         }
+
+        if (values.role === "participant") {
+            navigate("/participant/my-artifacts");
+        }
     }
 
     return (
@@ -100,7 +104,7 @@ export default function Login() {
 
                     </div>
                 </div>
-        </Content>
-    </Layout >
+            </Content>
+        </Layout >
     );
 }

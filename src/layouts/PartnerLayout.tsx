@@ -22,16 +22,16 @@ export default function CuratorLayout({
                 menuItems={[
                     {
                         label:"Дашборд",
-                        path:"/"
+                        path:"/partner/dashboard"
                     },
                     {
                         label:"Подписки",
-                        path:"/"
+                        path:"/partner/digest"
                     }
                 ]}
             />
 
-            <Content>
+            <Content className="page-container">
                 {children}
             </Content>
 

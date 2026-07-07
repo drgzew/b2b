@@ -3,6 +3,8 @@ import Login from "../pages/Login";
 import Queue from "../pages/curator/Queue";
 import ArtifactPage from "../pages/curator/ArtifactPage"
 import RoleLayout from "../components/RoleLayout";
+import Requests from "../pages/curator/Requests";
+import MyArtifacts from "../pages/participant/MyArtifacts";
 
 export default function AppRouter() {
     return (
@@ -30,14 +32,24 @@ export default function AppRouter() {
                 }
             />
 
-            {/* <Route
-                path="/partner/dashboard"
+            <Route
+                path="/curator/requests"
                 element={
                     <RoleLayout>
-                        <Dashboard />
+                        <Requests />
                     </RoleLayout>
                 }
-            /> */}
+            />
+
+            <Route
+                path="/participant/my-artifacts"
+                element={
+                    <RoleLayout>
+                        <MyArtifacts />
+                    </RoleLayout>
+
+                }
+            />            
         </Routes>
     );
 }

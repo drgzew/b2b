@@ -1,6 +1,7 @@
 import React from "react";
 import CuratorLayout from "../layouts/CuratorLayout";
 import PartnerLayout from "../layouts/PartnerLayout";
+import ParticipiantLayout from "../layouts/ParticipantLayout";
 
 interface RoleLayoutProps {
     children: React.ReactNode;
@@ -25,6 +26,14 @@ export default function RoleLayout({
             <PartnerLayout>
                 {children}
             </PartnerLayout>
+        );
+    }
+
+    if (role === "participant") {
+        return (
+            <ParticipiantLayout>
+                {children}
+            </ParticipiantLayout>
         );
     }
 

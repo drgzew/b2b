@@ -3,12 +3,16 @@ export type ArtifactStatus =
     | "published"
     | "rejected";
 
-
 export type ArtifactType =
     | "vkr"
     | "article"
-    | "Доклад"
-    | "Мероприятие";
+    | "talk"
+    | "event";
+
+export type RequestStatus =
+    | "pending"
+    | "approved"
+    | "rejected";
 
 export interface Tag {
     id: number;
@@ -26,4 +30,14 @@ export interface Artifact {
     author_name?: string;
     created_at: string;
     tags: Tag[];
+}
+
+export interface ArtifactRequest {
+    id:number;
+    artifactId:number;
+    artifactTitle:string;
+    requester:string;
+    requesterRole:string;
+    status:RequestStatus;
+    createdAt:string;
 }

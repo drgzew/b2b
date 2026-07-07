@@ -147,7 +147,410 @@ body {
     transition: background 0.2s, transform 0.1s;
 }
 
+/* ---------- ПЛАШКА "НА ЭТОЙ НЕДЕЛЕ" ---------- */
+.week-badge {
+    background: #ffffff;
+    padding: 18px 24px;
+    border-radius: 16px;
+    border-left: 6px solid #00AEEF;
+    box-shadow: 0 2px 12px rgba(0, 174, 239, 0.06);
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 36px;
+    border: 1px solid rgba(0, 174, 239, 0.08);
+}
+.week-badge strong {
+    font-weight: 700;
+    color: #00AEEF;
+}
 
+/* ---------- КАРТОЧКИ ПОДПИСОК ---------- */
+.subscription-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 28px;
+}
+.subscription-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px 28px;
+    box-shadow: 0 2px 12px rgba(0, 174, 239, 0.05);
+    border: 1px solid #eef4f9;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer;
+}
+.subscription-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 36px rgba(0, 174, 239, 0.12);
+    border-color: rgba(0, 174, 239, 0.3);
+}
+.subscription-card h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a2a3a;
+    margin-bottom: 6px;
+}
+.subscription-card .sub-desc {
+    color: #4a5a6a;
+    font-size: 15px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+.subscription-card .sub-count {
+    display: inline-block;
+    background: rgba(0, 174, 239, 0.08);
+    padding: 4px 16px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #00AEEF;
+}
+
+/* ---------- КНОПКА УПРАВЛЕНИЯ ---------- */
+.btn-secondary {
+    background: white;
+    border: 1px solid #00AEEF;
+    color: #00AEEF;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.btn-secondary:hover {
+    background: #00AEEF;
+    color: white;
+}
+.manage-wrap {
+    text-align: right;
+    margin-bottom: 24px;
+}
+
+/* ---------- ДАЙДЖЕСТ ---------- */
+.digest-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+.digest-header h2 {
+    font-weight: 700;
+    font-size: 26px;
+    color: #1a2a3a;
+}
+.digest-header .back-link {
+    color: #00AEEF;
+    text-decoration: none;
+    font-weight: 500;
+    border: 1px solid #00AEEF;
+    padding: 8px 20px;
+    border-radius: 30px;
+    transition: background 0.2s, color 0.2s;
+    font-size: 15px;
+    cursor: pointer;
+}
+.digest-header .back-link:hover {
+    background: #00AEEF;
+    color: white;
+}
+
+/* Поиск в дайджесте */
+.digest-search {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d0dbe8;
+    border-radius: 10px;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.artifact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.artifact-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 24px 28px;
+    border: 1px solid #eef4f9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    transition: box-shadow 0.2s;
+}
+.artifact-card:hover {
+    box-shadow: 0 4px 20px rgba(0, 174, 239, 0.06);
+}
+.artifact-card h4 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a2a3a;
+}
+.artifact-card .meta {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: #4a5a6a;
+    margin: 8px 0 12px 0;
+}
+.artifact-card .meta span {
+    background: #f5f8fc;
+    padding: 2px 14px;
+    border-radius: 30px;
+    font-weight: 400;
+}
+.artifact-card .keywords {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.artifact-card .keywords span {
+    background: #e6f0fa;
+    color: #005a7a;
+    padding: 2px 12px;
+    border-radius: 30px;
+    font-size: 13px;
+}
+.artifact-card .abstract {
+    color: #2a3a4a;
+    line-height: 1.7;
+    margin-bottom: 18px;
+    font-size: 15px;
+}
+.artifact-card .actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.artifact-card .actions button {
+    background: white;
+    border: 1px solid #d0dbe8;
+    color: #1a2a3a;
+    padding: 8px 22px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.artifact-card .actions button:hover {
+    background: #00AEEF;
+    border-color: #00AEEF;
+    color: white;
+}
+.artifact-card .actions button.request-full {
+    border-color: #00AEEF;
+    color: #00AEEF;
+}
+.artifact-card .actions button.request-full:hover {
+    background: #00AEEF;
+    color: white;
+}
+.artifact-card .actions button.save-fav {
+    border-color: #e0e7ef;
+}
+.artifact-card .actions button.save-fav:hover {
+    background: #f0f5fb;
+    border-color: #b0c8dd;
+    color: #1a2a3a;
+}
+
+/* ---------- МОДАЛЬНОЕ ОКНО ---------- */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    background-color: rgba(0,0,0,.5);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 40px;
+    border-radius: 24px;
+    max-width: 720px;
+    width: 92%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    animation: slideDown .3s ease;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.modal-close {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+
+    font-size: 28px;
+    cursor: pointer;
+
+    color: #6b7a8a;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+
+    transition: 0.2s;
+}
+
+.modal-close:hover {
+    color: #1a2a3a;
+}
+.modal-content h2 {
+    font-weight: 700;
+    font-size: 26px;
+    margin-bottom: 8px;
+}
+.modal-content p {
+    color: #4a5a6a;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+#searchTopics {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d0dbe8;
+    border-radius: 10px;
+    font-size: 16px;
+    margin: 16px 0 20px 0;
+}
+
+.category-group {
+    margin-bottom: 12px;
+}
+.category-summary {
+    font-weight: 600;
+    font-size: 18px;
+    color: #005a7a;
+    cursor: pointer;
+    padding: 10px 0;
+    border-bottom: 1px solid #eef4f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.category-summary:hover {
+    color: #00AEEF;
+}
+.category-summary::after {
+    content: "▸";
+    font-size: 20px;
+    transition: transform 0.2s;
+}
+.category-group[open] .category-summary::after {
+    transform: rotate(90deg);
+}
+.topic-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0 10px 16px;
+    border-bottom: 1px solid #f0f4f9;
+}
+.topic-item .info {
+    flex: 1;
+}
+.topic-item .info strong {
+    font-weight: 500;
+}
+.topic-item .info .desc {
+    color: #4a5a6a;
+    font-size: 14px;
+    margin-left: 12px;
+}
+.topic-toggle {
+    padding: 4px 16px;
+    border-radius: 30px;
+    border: 1px solid #00AEEF;
+    background: white;
+    color: #00AEEF;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+    font-family: inherit;
+    font-size: 14px;
+    white-space: nowrap;
+}
+.topic-toggle:hover {
+    background: #00AEEF;
+    color: white;
+}
+.topic-toggle.selected {
+    background: #00AEEF;
+    color: white;
+}
+.topic-toggle.selected:hover {
+    background: #0095cc;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 28px;
+    border-top: 1px solid #eef4f9;
+    padding-top: 24px;
+}
+.modal-actions .btn-secondary {
+    padding: 10px 32px;
+}
+.modal-actions .btn-primary {
+    background: #00AEEF;
+    color: white;
+    border: none;
+    padding: 10px 32px;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: inherit;
+}
+.modal-actions .btn-primary:hover {
+    background: #0095cc;
+}
+
+#roleMessage {
+    display: none;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border-left: 6px solid #f59e0b;
+    color: #92400e;
+    font-size: 16px;
+}
+
+.subscription-settings-btn {
+    background: #00AEEF;
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: inherit;
+    margin-bottom: 24px;
+}
+
+.subscription-settings-btn:hover {
+    background: #0095cc;
+}
 /* ---------- АДАПТИВ ---------- */
 @media (max-width: 768px) {
     .header {
@@ -164,5 +567,16 @@ body {
     }
     .login-card {
         padding: 32px 24px;
+    }
+    .subscription-grid {
+        grid-template-columns: 1fr;
+    }
+    .modal-content {
+        padding: 28px;
+    }
+    .digest-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
     }
 }
