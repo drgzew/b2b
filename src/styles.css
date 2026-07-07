@@ -1,0 +1,168 @@
+/* ---------- ОБЩИЕ СТИЛИ ---------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f8fafc;
+    color: #1a2a3a;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+/* ---------- ШАПКА ---------- */
+.header {
+    height: 76px;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #00AEEF;
+    flex-shrink: 0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-container {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo-tmu {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    display: block;
+}
+
+.logo-text {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+}
+
+.divider {
+    font-size: 24px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.7);
+    line-height: 1;
+}
+
+.cabinet-title {
+    font-size: 22px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+}
+
+.nav a {
+    color: #ffffff;
+    text-decoration: none;
+    margin-left: 32px;
+    font-size: 16px;
+    font-weight: 500;
+    padding-bottom: 4px;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.2s, color 0.2s;
+}
+.nav a:hover {
+    border-bottom-color: #ffffff;
+}
+.nav a.active {
+    border-bottom-color: #ffffff;
+    font-weight: 600;
+}
+
+/* ---------- КОНТЕЙНЕР СТРАНИЦ ---------- */
+.page-container {
+    flex: 1;
+    padding: 40px 40px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    overflow-y: auto;
+}
+
+.page {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+.page.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- ЛОГИН ---------- */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh;
+}
+.login-card {
+    background: #ffffff;
+    padding: 48px 56px;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(0, 174, 239, 0.10);
+    width: 100%;
+    max-width: 420px;
+    border: 1px solid rgba(0, 174, 239, 0.10);
+}
+.login-card h2 {
+    font-weight: 700;
+    font-size: 28px;
+    margin-bottom: 16px;
+    color: #1a2a3a;
+}
+
+.login-card .btn-primary {
+    width: 100%;
+    background: #00AEEF;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 17px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+
+/* ---------- АДАПТИВ ---------- */
+@media (max-width: 768px) {
+    .header {
+        padding: 14px 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .nav a {
+        margin-left: 16px;
+        font-size: 14px;
+    }
+    .page-container {
+        padding: 20px;
+    }
+    .login-card {
+        padding: 32px 24px;
+    }
+}
