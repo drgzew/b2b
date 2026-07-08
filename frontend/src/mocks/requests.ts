@@ -1,10 +1,10 @@
-import type {ArtifactRequest} from "../api/types";
+import type { ArtifactRequest } from "../api/types";
 
-export const requests:ArtifactRequest[] = [
+export const requests: ArtifactRequest[] = [
 
     {
-        id:1,
-        artifactId:1,
+        id: 1,
+        artifactId: 1,
         artifactTitle:
             "Моделирование фильтрации нефти",
         requester:
@@ -19,8 +19,8 @@ export const requests:ArtifactRequest[] = [
 
 
     {
-        id:2,
-        artifactId:3,
+        id: 2,
+        artifactId: 3,
         artifactTitle:
             "Оптимизация системы поддержания пластового давления",
         requester:

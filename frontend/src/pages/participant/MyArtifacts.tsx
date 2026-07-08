@@ -1,7 +1,7 @@
-import {Button, Card, Table, Tag, Modal, Form, Input, Select, message} from "antd";
-import {useState} from "react";
-import {artifacts} from "../../mocks/artifacts";
-import type {Artifact} from "../../api/types";
+import { Button, Card, Table, Tag, Modal, Form, Input, Select, message } from "antd";
+import { useState } from "react";
+import { artifacts } from "../../mocks/artifacts";
+import type { Artifact } from "../../api/types";
 
 export default function MyArtifacts() {
 
@@ -81,25 +81,25 @@ export default function MyArtifacts() {
 
     const columns = [
         {
-            title:"Название",
+            title: "Название",
 
-            dataIndex:"title"
+            dataIndex: "title"
         },
         {
-            title:"Тип",
+            title: "Тип",
 
-            dataIndex:"type",
+            dataIndex: "type",
 
-            render:(type:string)=>(
+            render: (type: string) => (
 
                 <Tag>
 
                     {
                         {
-                            vkr:"ВКР",
-                            article:"Статья",
-                            talk:"Доклад",
-                            event:"Мероприятие"
+                            vkr: "ВКР",
+                            article: "Статья",
+                            talk: "Доклад",
+                            event: "Мероприятие"
 
                         }[type] || type
                     }
@@ -112,11 +112,11 @@ export default function MyArtifacts() {
 
 
         {
-            title:"Статус",
+            title: "Статус",
 
-            dataIndex:"status",
+            dataIndex: "status",
 
-            render:(status:string)=>(
+            render: (status: string) => (
 
 
                 <Tag
@@ -124,10 +124,10 @@ export default function MyArtifacts() {
                         status === "published"
                             ? "green"
                             :
-                        status === "moderation"
-                            ? "blue"
-                            :
-                        "red"
+                            status === "moderation"
+                                ? "blue"
+                                :
+                                "red"
                     }
                 >
 
@@ -153,11 +153,11 @@ export default function MyArtifacts() {
 
 
         {
-            title:"Доступ",
+            title: "Доступ",
 
-            dataIndex:"access_level",
+            dataIndex: "access_level",
 
-            render:(value:string)=>(
+            render: (value: string) => (
 
                 <Tag>
 
@@ -189,7 +189,7 @@ export default function MyArtifacts() {
 
         <div
             style={{
-                padding:24
+                padding: 24
             }}
         >
 
@@ -209,7 +209,7 @@ export default function MyArtifacts() {
             <Card
                 title="Мои работы"
                 style={{
-                    marginTop:24
+                    marginTop: 24
                 }}
             >
 
@@ -222,7 +222,7 @@ export default function MyArtifacts() {
                     dataSource={data}
 
                     pagination={{
-                        pageSize:10
+                        pageSize: 10
                     }}
 
                 />
@@ -264,13 +264,13 @@ export default function MyArtifacts() {
 
                         rules={[
                             {
-                                required:true
+                                required: true
                             }
                         ]}
 
                     >
 
-                        <Input/>
+                        <Input />
 
                     </Form.Item>
 
@@ -289,23 +289,23 @@ export default function MyArtifacts() {
                             options={[
 
                                 {
-                                    label:"ВКР",
-                                    value:"vkr"
+                                    label: "ВКР",
+                                    value: "vkr"
                                 },
 
                                 {
-                                    label:"Статья",
-                                    value:"article"
+                                    label: "Статья",
+                                    value: "article"
                                 },
 
                                 {
-                                    label:"Доклад",
-                                    value:"talk"
+                                    label: "Доклад",
+                                    value: "talk"
                                 },
 
                                 {
-                                    label:"Мероприятие",
-                                    value:"event"
+                                    label: "Мероприятие",
+                                    value: "event"
                                 }
 
                             ]}
@@ -324,7 +324,7 @@ export default function MyArtifacts() {
 
                     >
 
-                        <Input.TextArea/>
+                        <Input.TextArea />
 
                     </Form.Item>
 
@@ -347,26 +347,26 @@ export default function MyArtifacts() {
 
                                 {
                                     label:
-                                    "Полный текст",
+                                        "Полный текст",
 
                                     value:
-                                    "full"
+                                        "full"
                                 },
 
                                 {
                                     label:
-                                    "Только аннотация",
+                                        "Только аннотация",
 
                                     value:
-                                    "annotation_only"
+                                        "annotation_only"
                                 },
 
                                 {
                                     label:
-                                    "Не показывать",
+                                        "Не показывать",
 
                                     value:
-                                    "none"
+                                        "none"
                                 }
 
                             ]}

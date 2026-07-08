@@ -25,7 +25,7 @@ export default function Login() {
             navigate("/participant/my-artifacts");
         }
 
-        
+
     }
 
     return (

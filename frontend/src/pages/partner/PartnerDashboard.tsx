@@ -29,14 +29,14 @@ const PartnerDashboard: React.FC = () => {
   };
 
   const totalNewWorks = useMemo(() => {
-  let sum = 0;
-  selectedTopicIds.forEach(topicId => {
-    const topic = topics.find(t => t.id === topicId);
-    if (!topic) return;
-    sum += artifacts.filter(art => hasCommonTag(art.tags, topic.tags)).length;
-  });
-  return sum;
-}, [selectedTopicIds]);
+    let sum = 0;
+    selectedTopicIds.forEach(topicId => {
+      const topic = topics.find(t => t.id === topicId);
+      if (!topic) return;
+      sum += artifacts.filter(art => hasCommonTag(art.tags, topic.tags)).length;
+    });
+    return sum;
+  }, [selectedTopicIds]);
 
   const selectedTopics = topics.filter(t => selectedTopicIds.includes(t.id));
 

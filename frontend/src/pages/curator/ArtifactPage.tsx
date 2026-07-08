@@ -1,15 +1,15 @@
-import {Card, Typography, Select, Button, Space, Tag, message} from "antd";
+import { Card, Typography, Select, Button, Space, Tag, message } from "antd";
 import { useParams } from "react-router-dom";
 import { useState } from "react";
 import { artifacts } from "../../mocks/artifacts";
 import { tags } from "../../mocks/tags";
 import type { Artifact as ArtifactType } from "../../api/types";
 
-const {Title, Text} = Typography;
+const { Title, Text } = Typography;
 
 export default function ArtifactPage() {
 
-    const {id} = useParams();
+    const { id } = useParams();
 
     const initialArtifact =
         artifacts.find(

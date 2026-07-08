@@ -1,5 +1,5 @@
 import { useState } from "react";
-import {Table, Input, Select, Card, Row, Col, Tag, Button} from "antd";
+import { Table, Input, Select, Card, Row, Col, Tag, Button } from "antd";
 import { useNavigate } from "react-router-dom";
 import { artifacts } from "../../mocks/artifacts";
 import { tags } from "../../mocks/tags";
@@ -37,7 +37,7 @@ export default function Queue() {
                 new Date(
                     artifact.created_at
                 )
-                .getFullYear();
+                    .getFullYear();
 
             const matchesYear =
                 !yearFilter ||
@@ -70,52 +70,52 @@ export default function Queue() {
             );
         });
 
-    function getYear(date:string) {
+    function getYear(date: string) {
         return new Date(date)
             .getFullYear();
     }
 
     const columns = [
         {
-            title:"Название",
-            dataIndex:"title"
+            title: "Название",
+            dataIndex: "title"
         },
         {
-            title:"Тип",
-            dataIndex:"type",
-            render:(type:string)=>(
+            title: "Тип",
+            dataIndex: "type",
+            render: (type: string) => (
                 <Tag>
                     {
                         {
-                            vkr:"ВКР",
-                            article:"Статья",
-                            talk:"Доклад",
-                            event:"Мероприятие"
+                            vkr: "ВКР",
+                            article: "Статья",
+                            talk: "Доклад",
+                            event: "Мероприятие"
                         }[type] || type
                     }
                 </Tag>
             )
         },
         {
-            title:"Автор",
-            dataIndex:"author_name"
+            title: "Автор",
+            dataIndex: "author_name"
         },
         {
-            title:"Год",
-            render:(
-                _:unknown,
-                record:Artifact
-            )=>
+            title: "Год",
+            render: (
+                _: unknown,
+                record: Artifact
+            ) =>
                 getYear(
                     record.created_at
                 )
         },
         {
-            title:"Теги",
-            render:(
-                _:unknown,
-                record:Artifact
-            )=>(
+            title: "Теги",
+            render: (
+                _: unknown,
+                record: Artifact
+            ) => (
                 <>
                     {
                         record.tags.map(
@@ -134,23 +134,23 @@ export default function Queue() {
             )
         },
         {
-            title:"Статус",
-            dataIndex:"status",
-            render:(
-                status:Artifact["status"]
-            )=>{
+            title: "Статус",
+            dataIndex: "status",
+            render: (
+                status: Artifact["status"]
+            ) => {
                 const config = {
-                    moderation:{
-                        color:"blue",
-                        text:"На проверке"
+                    moderation: {
+                        color: "blue",
+                        text: "На проверке"
                     },
-                    published:{
-                        color:"green",
-                        text:"Опубликовано"
+                    published: {
+                        color: "green",
+                        text: "Опубликовано"
                     },
-                    rejected:{
-                        color:"red",
-                        text:"Отклонено"
+                    rejected: {
+                        color: "red",
+                        text: "Отклонено"
                     }
                 };
 
@@ -171,11 +171,11 @@ export default function Queue() {
             }
         },
         {
-            title:"Действия",
-            render:(
-                _:unknown,
-                record:Artifact
-            )=>(
+            title: "Действия",
+            render: (
+                _: unknown,
+                record: Artifact
+            ) => (
                 <Button
                     type="primary"
                     onClick={() =>
@@ -199,8 +199,8 @@ export default function Queue() {
             <Row
                 gutter={16}
                 style={{
-                    marginTop:24,
-                    marginBottom:24
+                    marginTop: 24,
+                    marginBottom: 24
                 }}
             >
                 <Col span={6}>
@@ -246,13 +246,13 @@ export default function Queue() {
             <Row
                 gutter={16}
                 style={{
-                    marginBottom:24
+                    marginBottom: 24
                 }}
             >
                 <Col span={6}>
                     <Input
                         placeholder="Поиск по названию"
-                        onChange={(e)=>
+                        onChange={(e) =>
                             setSearch(
                                 e.target.value
                             )
@@ -263,7 +263,7 @@ export default function Queue() {
                 <Col span={6}>
                     <Input
                         placeholder="Поиск по автору"
-                        onChange={(e)=>
+                        onChange={(e) =>
                             setAuthorSearch(
                                 e.target.value
                             )
@@ -276,7 +276,7 @@ export default function Queue() {
                         allowClear
                         placeholder="Год"
                         style={{
-                            width:"100%"
+                            width: "100%"
                         }}
                         onChange={
                             value =>
@@ -291,14 +291,14 @@ export default function Queue() {
                                         new Date(
                                             item.created_at
                                         )
-                                        .getFullYear()
+                                            .getFullYear()
                                 )
                             )
                         ]
-                        .map(year=>({
-                            label:year,
-                            value:year
-                        }))}
+                            .map(year => ({
+                                label: year,
+                                value: year
+                            }))}
                     />
                 </Col>
 
@@ -307,7 +307,7 @@ export default function Queue() {
                         allowClear
                         placeholder="Тип"
                         style={{
-                            width:"100%"
+                            width: "100%"
                         }}
                         onChange={
                             value =>
@@ -317,20 +317,20 @@ export default function Queue() {
                         }
                         options={[
                             {
-                                label:"ВКР",
-                                value:"vkr"
+                                label: "ВКР",
+                                value: "vkr"
                             },
                             {
-                                label:"Статья",
-                                value:"article"
+                                label: "Статья",
+                                value: "article"
                             },
                             {
-                                label:"Доклад",
-                                value:"talk"
+                                label: "Доклад",
+                                value: "talk"
                             },
                             {
-                                label:"Мероприятие",
-                                value:"event"
+                                label: "Мероприятие",
+                                value: "event"
                             }
                         ]}
                     />
@@ -341,7 +341,7 @@ export default function Queue() {
                         allowClear
                         placeholder="Статус"
                         style={{
-                            width:"100%"
+                            width: "100%"
                         }}
                         onChange={
                             value =>
@@ -351,16 +351,16 @@ export default function Queue() {
                         }
                         options={[
                             {
-                                label:"На проверке",
-                                value:"moderation"
+                                label: "На проверке",
+                                value: "moderation"
                             },
                             {
-                                label:"Опубликовано",
-                                value:"published"
+                                label: "Опубликовано",
+                                value: "published"
                             },
                             {
-                                label:"Отклонено",
-                                value:"rejected"
+                                label: "Отклонено",
+                                value: "rejected"
                             }
                         ]}
                     />
@@ -369,7 +369,7 @@ export default function Queue() {
 
             <Row
                 style={{
-                    marginBottom:24
+                    marginBottom: 24
                 }}
             >
                 <Col span={8}>
@@ -379,7 +379,7 @@ export default function Queue() {
                         allowClear
                         placeholder="Поиск по тегам"
                         style={{
-                            width:"100%"
+                            width: "100%"
                         }}
                         value={
                             tagFilter
@@ -390,7 +390,7 @@ export default function Queue() {
                         optionFilterProp="label"
                         options={
                             tags.map(
-                                tag=>({
+                                tag => ({
                                     label:
                                         tag.name,
                                     value:
@@ -409,12 +409,12 @@ export default function Queue() {
                     filteredArtifacts
                 }
                 pagination={{
-                    pageSize:10,
-                    showSizeChanger:false,
-                    showTotal:(
+                    pageSize: 10,
+                    showSizeChanger: false,
+                    showTotal: (
                         total,
                         range
-                    )=>
+                    ) =>
                         `${range[0]}-${range[1]} из ${total}`
                 }}
             />
