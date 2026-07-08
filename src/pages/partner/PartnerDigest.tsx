@@ -106,7 +106,7 @@ const availableTags = useMemo(() => {
   };
 
   return (
-    <div>
+    <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Title level={4}>
           Дайджест {currentTopic ? `: ${currentTopic.name}` : '(все подписки)'}

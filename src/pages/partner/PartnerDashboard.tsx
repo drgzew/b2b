@@ -47,7 +47,7 @@ const PartnerDashboard: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="page-container">
       <Badge.Ribbon text="Новые" color="#00AEEF">
         <Card style={{ marginBottom: 32, background: '#f0f7ff', borderColor: '#00AEEF' }}>
           <Title level={4} style={{ margin: 0 }}>
