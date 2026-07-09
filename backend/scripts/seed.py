@@ -21,9 +21,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from sqlmodel import Session, select  # noqa: E402
 
-from backend.app.db import engine, init_db  # noqa: E402
-from backend.app.models import Artifact, Partner, Subscription, Tag, User  # noqa: E402
-from backend.app.security import hash_password  # noqa: E402
+from app.db import engine, init_db  # noqa: E402
+from app.models import Artifact, Partner, Subscription, Tag, User  # noqa: E402
+from app.security import hash_password  # noqa: E402
 
 
 def get_or_create_tag(session: Session, name: str) -> Tag:

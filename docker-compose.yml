@@ -17,8 +17,8 @@ services:
       timeout: 5s
       retries: 10
 
-  api:
-    build: ./api
+  backend:
+    build: ./backend
     ports:
       - "8000:8000"
     environment:
@@ -30,7 +30,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./api:/app
+      - ./backend:/app
 
   # Пустой контейнер под фронт — чтобы docker compose up поднимал всё одной командой.
   # Заменить на реальный Dockerfile, когда появится фронтенд-код.

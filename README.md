@@ -31,7 +31,7 @@ docker compose up --build
 
 Поднимется:
 - `db` — PostgreSQL с pgvector (`pgvector/pgvector:pg16`), порт `5432`
-- `api` — FastAPI, порт `8000`
+- `backend` — FastAPI, порт `8000`
 - `frontend` — временный пустой контейнер-заглушка (чтобы `docker compose up` поднимал всё одной командой)
 
 Таблицы создаются автоматически при старте API (`SQLModel.metadata.create_all`).
@@ -46,7 +46,7 @@ curl http://localhost:8000/health
 ## Наполнить тестовыми данными
 
 ```bash
-docker compose exec api python scripts/seed.py
+docker compose exec backend python scripts/seed.py
 ```
 
 Создаст 5 артефактов, 2 партнёров (ГПН, СИБУР) с подписками и 3 пользователей для входа:
