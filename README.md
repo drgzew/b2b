@@ -7,7 +7,7 @@ cp .env.example .env
 ```
 
 ```cmd
-cp .env.example .env
+copy .env.example .env
 ```
 
 Затем сгенерировать секрет и вписать его в `.env` (переменная `SECRET_KEY`):
