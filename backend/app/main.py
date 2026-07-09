@@ -1,12 +1,13 @@
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
+from .routers import auth, curator
 from sqlmodel import Session, select
 
 from .converters import to_artifact_read
 from .db import get_session, init_db
 from .models import Artifact, Tag
-from .routers import auth, curator, partner
+from .routers import partner
 from .schemas import ArtifactCreate, ArtifactRead
 
 app = FastAPI(title="Подписка на университет — API")
