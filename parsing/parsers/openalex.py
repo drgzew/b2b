@@ -1,8 +1,20 @@
+from collections import Counter, defaultdict
 import json
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.stem import WordNetLemmatizer
+import numpy as np
 from pathlib import Path
 from pyopenalex import OpenAlex
+import PyPDF2
 import re
 import requests
+
+nltk.download('punkt')
+nltk.download('punkt_tab')
+nltk.download('stopwords')
+nltk.download('wordnet')
 
 client = OpenAlex()
 
@@ -103,7 +115,7 @@ def describe_work(work, index=None):
 
     print()
 
-def dump_works(works, output_path):
+def dump_works(works, keywords, output_path):
     """ Dump info about works as JSON.
     """
     data = [
@@ -113,16 +125,17 @@ def dump_works(works, output_path):
             "year": work.publication_year,
             "abstract": unpack_abstract(work.abstract_inverted_index),
             "doi": work.doi,
-            "source_url": work.open_access.oa_url
+            "source_url": work.open_access.oa_url,
+            "keywords": keywords[n] if n in keywords else None
         }
-        for work in works
+        for n, work in enumerate(works)
     ]
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
 
-def download_pdf(work, output_folder, timeout=30):
+def download_pdf(work, index, total, output_folder, timeout=30):
     """ Download work as PDF if available.
     """
     if not work.open_access or not work.open_access.is_oa:
@@ -174,8 +187,10 @@ def download_pdf(work, output_folder, timeout=30):
     output_path = Path(output_folder) / filename
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    print(f"[{index}/{total}] Скачивание: {pdf_url}")
+
     if output_path.exists():
-        print(f"PDF уже существует: {filename}")
+        print(f"(+) PDF уже существует: {filename}")
         return str(output_path)
 
     # download
@@ -184,7 +199,6 @@ def download_pdf(work, output_folder, timeout=30):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
 
-        print(f"Скачивание: {pdf_url}")
         response = requests.get(pdf_url, headers=headers, timeout=timeout, stream=True, allow_redirects=True)
 
         if response.status_code == 200:
@@ -192,7 +206,7 @@ def download_pdf(work, output_folder, timeout=30):
             content_type = response.headers.get('content-type', '').lower()
 
             if 'pdf' not in content_type and not pdf_url.endswith('.pdf'):
-                print(f"Не PDF, а HTML: {filename}")
+                print(f"(-) Не PDF, а HTML: {filename}")
                 return None
 
             with open(output_path, 'wb') as f:
@@ -202,22 +216,199 @@ def download_pdf(work, output_folder, timeout=30):
 
             # check for minimum PDF size
             if output_path.stat().st_size < 1024:  # less than 1KB
-                print(f"Файл слишком маленький: {filename}")
+                print(f"(-) Файл слишком маленький: {filename}")
                 output_path.unlink()  # delete
                 return None
 
-            print(f"PDF скачан: {filename} ({output_path.stat().st_size / 1024:.1f} KB)")
+            print(f"(+) PDF скачан: {filename} ({output_path.stat().st_size / 1024:.1f} KB)")
             return str(output_path)
         else:
-            print(f"Ошибка {response.status_code}: {filename}")
+            print(f"(-) Ошибка {response.status_code}: {filename}")
             return None
 
     except requests.exceptions.Timeout:
-        print(f"Таймаут: {filename}")
+        print(f"(-) Таймаут: {filename}")
         return None
     except Exception as e:
-        print(f"Ошибка загрузки: {filename} - {e}")
+        print(f"(-) Ошибка загрузки: {filename} - {e}")
         return None
+
+def file_extract_text(path):
+    """ Extract text fron a PDF file.
+    """
+    try:
+        text = ""
+        with open(path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        return text
+    except Exception as e:
+        print(f"Ошибка при чтении PDF {path}: {e}")
+        return ""
+
+def text_preprocess(text):
+    """ Preprocess text: tokenize, lemmatize, remove stopwords.
+    """
+    if not text:
+        return []
+
+    sentences = sent_tokenize(text)
+    words = []
+
+    stop_words = set(stopwords.words('english'))
+
+    # stopwords specific for articles
+    stop_words.update([
+        'et', 'al', 'fig', 'table', 'figure', 'equation', 'however',
+        'therefore', 'thus', 'also', 'using', 'used', 'shown', 'show',
+        'shows', 'fig', 'ref', 'reference', 'one', 'two', 'three',
+        'may', 'can', 'will', 'would', 'could', 'should', 'might',
+        'abstract', 'introduction', 'method', 'result', 'conclusion',
+        'study', 'paper', 'research', 'analysis', 'data', 'results',
+        'found', 'shown', 'observed', 'increased', 'decreased',
+        'wa', 'doi', 'http', 'property', 'sci'
+    ])
+
+    lemmatizer = WordNetLemmatizer()
+
+    for sent in sentences:
+        tokens = word_tokenize(sent.lower())
+        tokens = [token for token in tokens if token.isalpha() and len(token) > 2]
+        tokens = [lemmatizer.lemmatize(token) for token in tokens]
+        tokens = [token for token in tokens if token not in stop_words]
+        words.extend(tokens)
+
+    return words
+
+def text_keywords_tfidf(words, top_n=20):
+    """ Extract keywords from text using TF-IDF.
+    """
+    if not words:
+        return []
+
+    # count word frequency
+    word_freq = Counter(words)
+
+    # remove too frequent or rare words
+    total_words = len(words)
+    filtered_words = {
+        word: count for word, count in word_freq.items()
+        if 0.001 < count / total_words < 0.5  # between 0.1% and 50%
+    }
+
+    sorted_words = sorted(filtered_words.items(), key=lambda x: x[1], reverse=True)
+
+    return [word for word, _ in sorted_words[:top_n]]
+
+def text_keywords_rake(words, top_n=20):
+    """ Extract keywords from text using RAKE.
+    """
+    if not words:
+        return []
+
+    # bigrams and trigrams
+    bigrams = [' '.join(words[i:i+2]) for i in range(len(words)-1)]
+    trigrams = [' '.join(words[i:i+3]) for i in range(len(words)-2)]
+    
+    # frequency of all phrases
+    all_phrases = words + bigrams + trigrams
+    phrase_freq = Counter(all_phrases)
+
+    # filter out too long phrases
+    filtered_phrases = {
+        phrase: count for phrase, count in phrase_freq.items()
+        if count > 1 and len(phrase.split()) <= 3
+    }
+
+    sorted_phrases = sorted(filtered_phrases.items(), key=lambda x: x[1], reverse=True)
+
+    return [phrase for phrase, _ in sorted_phrases[:top_n]]
+
+def text_keywords_textrank(words, top_n=20, window_size=2, iterations=30, damping=.85):
+    """ Extract keywords from text using TextRank (PageRank для текста).
+    """
+    if not words:
+        return []
+
+    if len(words) < 3:
+        return words[:top_n] if words else []
+
+    # Убираем дубликаты для построения графа (сохраняем порядок)
+    unique_words = []
+    seen = set()
+    for word in words:
+        if word not in seen:
+            unique_words.append(word)
+            seen.add(word)
+
+    if len(unique_words) < 3:
+        return unique_words[:top_n]
+
+    # Строим граф связей между словами
+    word_to_index = {word: i for i, word in enumerate(unique_words)}
+    graph = np.zeros((len(unique_words), len(unique_words)))
+
+    # Проходим по тексту и строим связи между словами в окне
+    for i in range(len(words)):
+        for j in range(i + 1, min(i + window_size + 1, len(words))):
+            if words[i] in word_to_index and words[j] in word_to_index:
+                idx_i = word_to_index[words[i]]
+                idx_j = word_to_index[words[j]]
+                graph[idx_i][idx_j] += 1
+                graph[idx_j][idx_i] += 1
+
+    # Нормализуем граф
+    for i in range(len(graph)):
+        row_sum = graph[i].sum()
+        if row_sum > 0:
+            graph[i] = graph[i] / row_sum
+
+    # Алгоритм PageRank
+    scores = np.ones(len(unique_words)) / len(unique_words)
+
+    for _ in range(iterations):
+        new_scores = (1 - damping) / len(unique_words) + damping * scores @ graph
+        # Проверяем сходимость
+        if np.linalg.norm(new_scores - scores) < 1e-6:
+            break
+        scores = new_scores
+
+    # Сортируем слова по важности
+    word_scores = [(unique_words[i], scores[i]) for i in range(len(unique_words))]
+    word_scores.sort(key=lambda x: x[1], reverse=True)
+
+    # Возвращаем топ-N слов
+    result = [word for word, _ in word_scores[:top_n]]
+
+    return result
+
+def text_keywords_combined(text, top_n=20):
+    prep = text_preprocess(text)
+
+    kw_tfidf = text_keywords_tfidf(prep, top_n*2)
+    kw_rake = text_keywords_rake(prep, top_n*2)
+    kw_textrank = text_keywords_textrank(prep, top_n*2)
+
+    word_weights = defaultdict(float)
+
+    for idx, word in enumerate(kw_tfidf):
+        weight = 1.0 - (idx / len(kw_tfidf)) if kw_tfidf else 0
+        word_weights[word] += weight
+
+    for idx, word in enumerate(kw_rake):
+        weight = 1.0 - (idx / len(kw_rake)) if kw_rake else 0
+        word_weights[word] += weight
+
+    for idx, word in enumerate(kw_textrank):
+        weight = 1.0 - (idx / len(kw_textrank)) if kw_textrank else 0
+        word_weights[word] += weight
+
+    sorted_words = sorted(word_weights.items(), key=lambda x: x[1], reverse=True)
+
+    return [word for word, _ in sorted_words[:top_n]]
 
 def build_taxonomy_flat(works):
     """ Build flat taxonomy of topics.
@@ -360,11 +551,12 @@ def save_taxonomy_hierarchy(hierarchy, output_path):
         f.write('\n'.join(lines))
 
 def main():
-    works = get_works(100)
+    N = 200
+
+    works = get_works(N)
 
     for n, work in enumerate(works):
         describe_work(work, n + 1)
-    dump_works(works, "data/raw/openalex.json")
     print()
 
     domains, fields, subfields, topics = build_taxonomy_flat(works)
@@ -377,12 +569,21 @@ def main():
     hierarchy = build_taxonomy_hierarchy(works)
     print_taxonomy_hierarchy(hierarchy)
     save_taxonomy_hierarchy(hierarchy, "docs/taxonomy.md")
+    with open("docs/taxonomy.json", 'w', encoding='utf-8') as file:
+        json.dump(hierarchy, file, ensure_ascii=False, indent=2)
 
-    download_count = 0
-    for work in works:
-        if download_pdf(work, "data/pdfs"):
-            download_count += 1
-    print(f"Скачано статей: {download_count}")
+    downloaded_paths = {}
+    for n, work in enumerate(works):
+        if path := download_pdf(work, n + 1, N, "data/pdfs"):
+            downloaded_paths[n] = path
+    print(f"Скачано статей: {len(downloaded_paths)}")
+
+    keywords = {}
+    for n, path in downloaded_paths.items():
+        text = file_extract_text(path)
+        keywords[n] = text_keywords_combined(text)
+
+    dump_works(works, keywords, "data/raw/openalex.json")
 
 if __name__ == '__main__':
     main()

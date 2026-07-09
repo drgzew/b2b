@@ -19,5 +19,6 @@ python -m parsers.openalex
 Созадутся файлы:
 
 - `parsing/data/raw/openalex.json` - Описание найденных статей в формате JSON;
-- `parsing/docs/taxonomy.md` - Описание таксономии OpenAlex в формате Markdown.
+- `parsing/data/pdfs/` - Папка со скачанными статьями в формате PDF;
+- `parsing/docs/taxonomy.md` - Описание таксономии OpenAlex в формате Markdown;
 - `parsing/docs/taxonomy.json` - Описание таксономии OpenAlex в формате JSON.
