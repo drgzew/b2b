@@ -1,172 +1,258 @@
-import { Table, Tag, Button, message } from "antd";
-import { useState } from "react";
-import { requests as mockRequests } from "../../mocks/requests";
-import type { ArtifactRequest } from "../../api/types";
+import {Table, Tag, Button, message} from "antd";
+import {useEffect, useState} from "react";
+import {apiClient} from "../../api/client";
 
-export default function Requests() {
+interface ArtifactRequest {
+    id:number;
+    artifactTitle:string;
+    requester:string;
+    requesterRole:string;
+    type:string;
+    status:string;
+    createdAt:string;
+}
 
-    const [
-        requests,
-        setRequests
-    ] = useState<ArtifactRequest[]>(
-        mockRequests
-    );
+export default function Requests(){
 
-    function approve(id: number) {
+    const [requests,setRequests]=useState<ArtifactRequest[]>([]);
+    const [loading,setLoading]=useState(false);
 
-        setRequests(prev =>
-            prev.map(item =>
-                item.id === id
-                    ? {
-                        ...item,
-                        status: "approved"
-                    }
-                    : item
-            )
-        );
+    useEffect(()=>{
+        loadRequests();
+    },[]);
 
-        message.success(
-            "Доступ разрешён"
-        );
-    }
+    async function loadRequests(){
 
-    function reject(id: number) {
+        try{
 
-        setRequests(prev =>
-            prev.map(item =>
-                item.id === id
-                    ? {
-                        ...item,
-                        status: "rejected"
-                    }
-                    : item
-            )
-        );
+            setLoading(true);
 
-        message.error(
-            "Доступ отклонён"
-        );
-    }
+            const response =
+                await apiClient.get(
+                    "/curator/requests"
+                );
 
-    const columns = [
-        {
-            title: "Артефакт",
-            dataIndex:
-                "artifactTitle"
-        },
-        {
-            title: "Запросил",
-            dataIndex:
-                "requester"
-        },
-        {
-            title: "Роль",
-            dataIndex:
-                "requesterRole"
-        },
-        {
-            title: "Дата",
-            dataIndex:
-                "createdAt"
-        },
-        {
-            title: "Статус",
-            dataIndex:
-                "status",
-            render:
-                (
-                    status: string
-                ) => {
+            setRequests(
+                response.data
+            );
 
-                    const config: any = {
+        }catch{
 
-                        pending: {
-                            text: "Ожидает",
-                            color: "blue"
-                        },
+            message.error(
+                "Не удалось загрузить запросы"
+            );
 
-                        approved: {
-                            text: "Разрешён",
-                            color: "green"
-                        },
+        }finally{
 
-                        rejected: {
-                            text: "Отклонён",
-                            color: "red"
-                        }
-                    };
+            setLoading(false);
 
-                    return (
-                        <Tag
-                            color={
-                                config[status].color
-                            }
-                        >
-                            {
-                                config[status].text
-                            }
-                        </Tag>
-                    );
-                }
-        },
-
-        {
-            title: "Действия",
-            render:
-                (
-                    _: unknown,
-                    record: ArtifactRequest
-                ) => (
-                    record.status === "pending"
-                    &&
-                    <>
-                        <Button
-                            type="primary"
-                            onClick={() =>
-                                approve(
-                                    record.id
-                                )
-                            }
-                        >
-                            Разрешить
-                        </Button>
-
-                        <Button
-                            danger
-                            style={{
-                                marginLeft: 10
-                            }}
-                            onClick={() =>
-                                reject(
-                                    record.id
-                                )
-                            }
-                        >
-                            Отказать
-                        </Button>
-                    </>
-                )
         }
+
+    }
+
+
+    async function updateStatus(
+        id:number,
+        status:string
+    ){
+
+        try{
+
+            await apiClient.patch(
+                `/curator/requests/${id}`,
+                {
+                    status
+                }
+            );
+
+            setRequests(prev =>
+                prev.map(item =>
+                    item.id === id
+                        ? {
+                            ...item,
+                            status
+                        }
+                        : item
+                )
+            );
+
+
+            if(status==="in_progress"){
+
+                message.success(
+                    "Запрос взят в работу"
+                );
+
+            }
+
+
+            if(status==="done"){
+
+                message.success(
+                    "Запрос выполнен"
+                );
+
+            }
+
+
+        }catch{
+
+            message.error(
+                "Ошибка обновления запроса"
+            );
+
+        }
+
+    }
+
+
+    const columns=[
+
+        {
+            title:"Партнёр",
+            dataIndex:"requester"
+        },
+
+
+        {
+            title:"Артефакт",
+            dataIndex:"artifactTitle"
+        },
+
+
+        {
+            title:"Тип запроса",
+            dataIndex:"type"
+        },
+
+
+        {
+            title:"Статус",
+
+            dataIndex:"status",
+
+            render:(status:string)=>{
+
+                const config:any={
+
+                    pending:{
+                        text:"Новый",
+                        color:"blue"
+                    },
+
+                    in_progress:{
+                        text:"В работе",
+                        color:"orange"
+                    },
+
+                    done:{
+                        text:"Готово",
+                        color:"green"
+                    }
+
+                };
+
+
+                return(
+
+                    <Tag
+                        color={
+                            config[status]?.color
+                        }
+                    >
+
+                        {
+                            config[status]?.text ||
+                            status
+                        }
+
+                    </Tag>
+
+                );
+
+            }
+
+        },
+
+
+        {
+            title:"Действия",
+
+            render:(
+                _:unknown,
+                record:ArtifactRequest
+            )=>(
+
+                <>
+
+                    {
+                        record.status==="pending" && (
+
+                            <Button
+                                type="primary"
+                                onClick={()=>updateStatus(
+                                    record.id,
+                                    "in_progress"
+                                )}
+                            >
+                                Взять в работу
+                            </Button>
+
+                        )
+                    }
+
+
+                    {
+                        record.status==="in_progress" && (
+
+                            <Button
+                                onClick={()=>updateStatus(
+                                    record.id,
+                                    "done"
+                                )}
+                            >
+                                Готово
+                            </Button>
+
+                        )
+                    }
+
+                </>
+
+            )
+
+        }
+
     ];
 
-    return (
+
+    return(
+
         <div className="page-container">
-            <h1 style={{ marginBottom: 24 }}>
+
+            <h1>
                 Запросы полного текста
             </h1>
 
+
             <Table
+
                 rowKey="id"
-                columns={
-                    columns
-                }
-                dataSource={
-                    requests
-                }
+
+                loading={loading}
+
+                columns={columns}
+
+                dataSource={requests}
+
                 pagination={{
-                    pageSize: 10
+                    pageSize:10
                 }}
+
             />
+
         </div>
+
     );
+
 }
