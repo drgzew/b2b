@@ -20,3 +20,4 @@ python -m parsers.openalex
 
 - `parsing/data/raw/openalex.json` - Описание найденных статей в формате JSON;
 - `parsing/docs/taxonomy.md` - Описание таксономии OpenAlex в формате Markdown.
+- `parsing/docs/taxonomy.json` - Описание таксономии OpenAlex в формате JSON.

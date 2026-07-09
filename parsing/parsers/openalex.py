@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from pyopenalex import OpenAlex
 import re
+import requests
 
 client = OpenAlex()
 
@@ -54,7 +55,7 @@ def get_works(limit=5, years="2023|2024|2025"):
         .filter(**{"authorships.institutions.ror": inst.ror}) \
         .filter(publication_year=years)                       \
         .limit(limit)                                         \
-        .get().results
+        .get(all=True).results
 
 def describe_work(work, index=None):
     """ Describe a piece of work.
@@ -120,6 +121,103 @@ def dump_works(works, output_path):
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
+
+def download_pdf(work, output_folder, timeout=30):
+    """ Download work as PDF if available.
+    """
+    if not work.open_access or not work.open_access.is_oa:
+        return None
+
+    # define best link to url 
+    pdf_url = None
+
+    if hasattr(work, 'best_oa_location') and work.best_oa_location:
+        if hasattr(work.best_oa_location, 'pdf_url') and work.best_oa_location.pdf_url:
+            pdf_url = work.best_oa_location.pdf_url
+        elif hasattr(work.best_oa_location, 'landing_page_url') and work.best_oa_location.landing_page_url:
+            pdf_url = work.best_oa_location.landing_page_url
+        elif hasattr(work.best_oa_location, 'url') and work.best_oa_location.url:
+            pdf_url = work.best_oa_location.url
+
+    if not pdf_url and work.open_access.oa_url:
+        pdf_url = work.open_access.oa_url
+
+    if not pdf_url and hasattr(work, 'locations'):
+        for location in work.locations:
+            if location.is_oa:
+                if hasattr(location, 'pdf_url') and location.pdf_url:
+                    pdf_url = location.pdf_url
+                    break
+                elif hasattr(location, 'landing_page_url') and location.landing_page_url:
+                    if location.landing_page_url.endswith('.pdf') or 'pdf' in location.landing_page_url.lower():
+                        pdf_url = location.landing_page_url
+                        break
+
+    if not pdf_url and hasattr(work, 'primary_location') and work.primary_location:
+        if hasattr(work.primary_location, 'pdf_url') and work.primary_location.pdf_url:
+            pdf_url = work.primary_location.pdf_url
+        elif hasattr(work.primary_location, 'landing_page_url') and work.primary_location.landing_page_url:
+            pdf_url = work.primary_location.landing_page_url
+    
+    if not pdf_url:
+        return None
+
+    if work.doi:
+        doi_clean = work.doi.replace('https://doi.org/', '').replace('/', '_')
+        filename = f"{doi_clean}.pdf"
+    else:
+        work_id = work.id.split('/')[-1]
+        filename = f"{work_id}.pdf"
+
+    filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+
+    output_path = Path(output_folder) / filename
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if output_path.exists():
+        print(f"PDF уже существует: {filename}")
+        return str(output_path)
+
+    # download
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+
+        print(f"Скачивание: {pdf_url}")
+        response = requests.get(pdf_url, headers=headers, timeout=timeout, stream=True, allow_redirects=True)
+
+        if response.status_code == 200:
+            # check that this is actually PDF
+            content_type = response.headers.get('content-type', '').lower()
+
+            if 'pdf' not in content_type and not pdf_url.endswith('.pdf'):
+                print(f"Не PDF, а HTML: {filename}")
+                return None
+
+            with open(output_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+
+            # check for minimum PDF size
+            if output_path.stat().st_size < 1024:  # less than 1KB
+                print(f"Файл слишком маленький: {filename}")
+                output_path.unlink()  # delete
+                return None
+
+            print(f"PDF скачан: {filename} ({output_path.stat().st_size / 1024:.1f} KB)")
+            return str(output_path)
+        else:
+            print(f"Ошибка {response.status_code}: {filename}")
+            return None
+
+    except requests.exceptions.Timeout:
+        print(f"Таймаут: {filename}")
+        return None
+    except Exception as e:
+        print(f"Ошибка загрузки: {filename} - {e}")
+        return None
 
 def build_taxonomy_flat(works):
     """ Build flat taxonomy of topics.
@@ -262,11 +360,11 @@ def save_taxonomy_hierarchy(hierarchy, output_path):
         f.write('\n'.join(lines))
 
 def main():
-    works = get_works()
-    
-    for n, work in enumerate(works[:5]):
+    works = get_works(100)
+
+    for n, work in enumerate(works):
         describe_work(work, n + 1)
-    dump_works(works[:5], "data/raw/openalex.json")
+    dump_works(works, "data/raw/openalex.json")
     print()
 
     domains, fields, subfields, topics = build_taxonomy_flat(works)
@@ -279,6 +377,12 @@ def main():
     hierarchy = build_taxonomy_hierarchy(works)
     print_taxonomy_hierarchy(hierarchy)
     save_taxonomy_hierarchy(hierarchy, "docs/taxonomy.md")
+
+    download_count = 0
+    for work in works:
+        if download_pdf(work, "data/pdfs"):
+            download_count += 1
+    print(f"Скачано статей: {download_count}")
 
 if __name__ == '__main__':
     main()
