@@ -32,14 +32,17 @@ services:
     volumes:
       - ./backend:/app
 
-  # Пустой контейнер под фронт — чтобы docker compose up поднимал всё одной командой.
-  # Заменить на реальный Dockerfile, когда появится фронтенд-код.
   frontend:
-    image: node:20-alpine
-    working_dir: /app
-    command: sh -c "echo 'frontend placeholder, waiting for real app' && tail -f /dev/null"
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
 
 volumes:
   pgdata:

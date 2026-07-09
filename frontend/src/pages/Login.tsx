@@ -1,39 +1,70 @@
-import { Form, Input, Button, Select, Layout } from "antd";
-import { useNavigate } from "react-router-dom";
+import {Form, Input, Button, Select, Layout, message} from "antd";
+import {useNavigate} from "react-router-dom";
 import Header from "../components/Header";
+import {login} from "../api/auth";
 
-const { Content } = Layout;
+const {Content}=Layout;
 
-export default function Login() {
-    const navigate = useNavigate();
+export default function Login(){
 
-    function onFinish(values: any) {
-        localStorage.setItem(
-            "role",
-            values.role
-        );
+    const navigate=useNavigate();
 
-        if (values.role === "partner") {
-            navigate("/partner/dashboard");
+    async function onFinish(values:any){
+
+        try{
+
+            const data=await login(
+                values.email,
+                values.password
+            );
+
+            localStorage.setItem(
+                "token",
+                data.access_token
+            );
+
+            localStorage.setItem(
+                "role",
+                data.role
+            );
+
+            if(data.role==="curator"){
+                navigate("/curator/queue");
+                return;
+            }
+
+            if(data.role==="partner"){
+                navigate("/partner/dashboard");
+                return;
+            }
+
+            if(data.role==="participant"){
+                navigate("/participant/my-artifacts");
+                return;
+            }
+
+        }catch(error){
+
+            message.error(
+                "Неверный email или пароль"
+            );
+
         }
-
-        if (values.role === "curator") {
-            navigate("/curator/queue");
-        }
-
-        if (values.role === "participant") {
-            navigate("/participant/my-artifacts");
-        }
-
 
     }
 
-    return (
+
+    return(
         <Layout>
-            <Header />
+
+            <Header/>
+
             <Content className="page-container">
+
                 <div className="login-wrapper">
+
                     <div className="login-card">
+
                         <h2>
                             Вход в систему
                         </h2>
@@ -42,71 +73,81 @@ export default function Login() {
                             layout="vertical"
                             onFinish={onFinish}
                         >
+
                             <Form.Item
                                 label="Электронная почта"
                                 name="email"
                                 rules={[
                                     {
-                                        required: true,
-                                        message: "Введите email"
+                                        required:true,
+                                        message:"Введите email"
                                     }
                                 ]}
                             >
-                                <Input
-                                    placeholder="partner@company.ru" />
+
+                                <Input/>
+
                             </Form.Item>
+
 
                             <Form.Item
                                 label="Пароль"
                                 name="password"
                                 rules={[
                                     {
-                                        required: true,
-                                        message: "Введите пароль"
+                                        required:true,
+                                        message:"Введите пароль"
                                     }
                                 ]}
                             >
-                                <Input.Password
-                                    placeholder="••••••••" />
+
+                                <Input.Password/>
+
                             </Form.Item>
+
 
                             <Form.Item
                                 label="Роль"
                                 name="role"
                                 initialValue="curator"
                             >
+
                                 <Select
                                     options={[
                                         {
-                                            label: "Участник",
-                                            value: "participant"
+                                            label:"Участник",
+                                            value:"participant"
                                         },
                                         {
-                                            label: "Партнёр",
-                                            value: "partner"
+                                            label:"Партнёр",
+                                            value:"partner"
                                         },
                                         {
-                                            label: "Куратор",
-                                            value: "curator"
-                                        },
-                                        {
-                                            label: "Администратор",
-                                            value: "admin"
+                                            label:"Куратор",
+                                            value:"curator"
                                         }
-                                    ]} />
+                                    ]}
+                                />
+
                             </Form.Item>
+
 
                             <Button
                                 htmlType="submit"
-                                className="btn-primary"
+                                type="primary"
                             >
                                 Войти
                             </Button>
+
+
                         </Form>
 
                     </div>
+
                 </div>
+
             </Content>
-        </Layout >
+
+        </Layout>
     );
 }

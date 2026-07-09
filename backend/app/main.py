@@ -3,6 +3,7 @@ from typing import List
 from fastapi import Depends, FastAPI, HTTPException
 from .routers import auth, curator
 from sqlmodel import Session, select
+from fastapi.middleware.cors import CORSMiddleware
 
 from .converters import to_artifact_read
 from .db import get_session, init_db
@@ -11,6 +12,14 @@ from .routers import partner
 from .schemas import ArtifactCreate, ArtifactRead
 
 app = FastAPI(title="Подписка на университет — API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(partner.router)
