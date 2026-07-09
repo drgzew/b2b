@@ -23,6 +23,9 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg2://app:app@db:5432/app
+      # Берётся из .env в корне проекта. Если .env нет или переменная не задана —
+      # используется дев-заглушка (см. .env.example).
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
     depends_on:
       db:
         condition: service_healthy
