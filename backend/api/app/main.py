@@ -3,11 +3,17 @@ from typing import List
 from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session, select
 
+from .converters import to_artifact_read
 from .db import get_session, init_db
 from .models import Artifact, Tag
+from .routers import auth, curator, partner
 from .schemas import ArtifactCreate, ArtifactRead
 
 app = FastAPI(title="Подписка на университет — API")
+
+app.include_router(auth.router)
+app.include_router(partner.router)
+app.include_router(curator.router)
 
 
 @app.on_event("startup")
@@ -20,17 +26,10 @@ def health():
     return {"status": "ok"}
 
 
-def _to_read_model(artifact: Artifact) -> ArtifactRead:
-    return ArtifactRead(
-        **artifact.dict(exclude={"embedding"}),
-        tags=[tag.name for tag in artifact.tags],
-    )
-
-
 @app.get("/artifacts", response_model=List[ArtifactRead])
 def list_artifacts(session: Session = Depends(get_session)):
     artifacts = session.exec(select(Artifact)).all()
-    return [_to_read_model(a) for a in artifacts]
+    return [to_artifact_read(a) for a in artifacts]
 
 
 @app.post("/artifacts", response_model=ArtifactRead)
@@ -49,7 +48,7 @@ def create_artifact(data: ArtifactCreate, session: Session = Depends(get_session
     session.add(artifact)
     session.commit()
     session.refresh(artifact)
-    return _to_read_model(artifact)
+    return to_artifact_read(artifact)
 
 
 @app.get("/artifacts/{artifact_id}", response_model=ArtifactRead)
@@ -57,4 +56,4 @@ def get_artifact(artifact_id: int, session: Session = Depends(get_session)):
     artifact = session.get(Artifact, artifact_id)
     if not artifact:
         raise HTTPException(status_code=404, detail="Artifact not found")
-    return _to_read_model(artifact)
+    return to_artifact_read(artifact)
