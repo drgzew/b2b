@@ -15,6 +15,22 @@ class ArtifactTag(SQLModel, table=True):
     )
 
 
+class SubscriptionTag(SQLModel, table=True):
+    """Связь многие-ко-многим между подписками и тегами.
+
+    Подписка теперь может объединять несколько тегов в одну "тему"
+    (например, "Нефтегаз и цифровизация") — это нужно, чтобы матчинг
+    через индекс Жаккара имел смысл (пересечение/объединение множеств тегов).
+    """
+
+    subscription_id: Optional[int] = Field(
+        default=None, foreign_key="subscription.id", primary_key=True
+    )
+    tag_id: Optional[int] = Field(
+        default=None, foreign_key="tag.id", primary_key=True
+    )
+
+
 class Tag(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
@@ -22,7 +38,9 @@ class Tag(SQLModel, table=True):
     artifacts: List["Artifact"] = Relationship(
         back_populates="tags", link_model=ArtifactTag
     )
-    subscriptions: List["Subscription"] = Relationship(back_populates="tag")
+    subscriptions: List["Subscription"] = Relationship(
+        back_populates="tags", link_model=SubscriptionTag
+    )
 
 
 class Artifact(SQLModel, table=True):
@@ -31,7 +49,12 @@ class Artifact(SQLModel, table=True):
     type: str  # vkr | article | talk | event
     annotation: str
     file_path: Optional[str] = None
-    status: str = Field(default="draft")  # draft | moderation | published
+
+    # Решение куратора по артефакту. Заменяет прежнее поле "status" —
+    # теперь это единственный источник правды о том, виден ли артефакт партнёрам:
+    # только curator_status == "approved" попадает в дайджест.
+    curator_status: str = Field(default="draft")  # draft | approved | rejected
+
     access_level: str = Field(default="none")  # full | annotation_only | none
     author_name: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -52,17 +75,18 @@ class Partner(SQLModel, table=True):
 
     subscriptions: List["Subscription"] = Relationship(back_populates="partner")
     requests: List["Request"] = Relationship(back_populates="partner")
+    users: List["User"] = Relationship(back_populates="partner")
 
 
 class Subscription(SQLModel, table=True):
-    """Подписка партнёра на конкретный тег. У партнёра может быть несколько подписок (по одной на тег)."""
+    """Подписка партнёра на тему — набор из одного или нескольких тегов."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
     partner_id: int = Field(foreign_key="partner.id")
-    tag_id: int = Field(foreign_key="tag.id")
+    name: Optional[str] = None  # человекочитаемое имя темы, например "Нефтегаз и цифровизация"
 
     partner: Optional[Partner] = Relationship(back_populates="subscriptions")
-    tag: Optional[Tag] = Relationship(back_populates="subscriptions")
+    tags: List[Tag] = Relationship(back_populates="subscriptions", link_model=SubscriptionTag)
     digest_items: List["DigestItem"] = Relationship(back_populates="subscription")
 
 
@@ -79,13 +103,27 @@ class DigestItem(SQLModel, table=True):
 
 
 class Request(SQLModel, table=True):
-    """Запрос партнёра на полный текст артефакта."""
+    """Запрос партнёра по артефакту: полный текст, стажировка или НИОКР."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
     artifact_id: int = Field(foreign_key="artifact.id")
     partner_id: int = Field(foreign_key="partner.id")
-    status: str = Field(default="sent")  # sent | with_curator | with_author | approved | declined
+    type: str  # full_text | internship | rnd
+    status: str = Field(default="sent")  # sent | in_progress | done
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     artifact: Optional[Artifact] = Relationship(back_populates="requests")
     partner: Optional[Partner] = Relationship(back_populates="requests")
+
+
+class User(SQLModel, table=True):
+    """Учётная запись для входа: партнёр или куратор."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(index=True, unique=True)
+    password_hash: str
+    role: str  # partner | curator
+    # Заполнено только для role == "partner": какой компании принадлежит эта учётка
+    partner_id: Optional[int] = Field(default=None, foreign_key="partner.id")
+
+    partner: Optional[Partner] = Relationship(back_populates="users")
