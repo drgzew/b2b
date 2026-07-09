@@ -17,8 +17,8 @@ openssl rand -hex 32
 ```
 
 ```cmd
-docker compose build api
-docker compose run --rm api python -c "import secrets; print(secrets.token_hex(32))"
+docker compose build backend
+docker compose run --rm backend python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 Без этого шага сработает дев-заглушка из `docker-compose.yml` — этого достаточно для локальной разработки, но не для пилота с реальным доступом партнёров.
