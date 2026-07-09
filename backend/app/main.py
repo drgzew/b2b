@@ -10,6 +10,7 @@ from .db import get_session, init_db
 from .models import Artifact, Tag
 from .routers import partner
 from .schemas import ArtifactCreate, ArtifactRead
+from app.routers import tags
 
 app = FastAPI(title="Подписка на университет — API")
 
@@ -24,7 +25,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(partner.router)
 app.include_router(curator.router)
-
+app.include_router(tags.router)
 
 @app.on_event("startup")
 def on_startup() -> None:

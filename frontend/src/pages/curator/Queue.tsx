@@ -1,308 +1,231 @@
-import {useEffect,useState} from "react";
-import {Table,Input,Select,Card,Row,Col,Tag,Button,Segmented,message} from "antd";
-import {useNavigate} from "react-router-dom";
-import {getCuratorArtifacts} from "../../api/curator";
-import {tags} from "../../mocks/tags";
-import type {Artifact} from "../../api/types";
+import { useEffect, useState } from "react";
+import { Table, Input, Select, Card, Row, Col, Tag, Button, Segmented, message } from "antd";
+import { useNavigate } from "react-router-dom";
+import { getCuratorArtifacts } from "../../api/curator";
+import { getAll } from "../../api/tags";
+import type { Artifact, Tag as TagType } from "../../api/types";
 
-export default function Queue(){
+export default function Queue() {
+    const navigate = useNavigate();
+    const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+    const [allTags, setAllTags] = useState<TagType[]>([]);
+    const [status, setStatus] = useState<string>("draft");
+    const [loading, setLoading] = useState(false);
+    const [search, setSearch] = useState("");
+    const [authorSearch, setAuthorSearch] = useState("");
+    const [yearFilter, setYearFilter] = useState<number>();
+    const [typeFilter, setTypeFilter] = useState("");
+    const [tagFilter, setTagFilter] = useState<number[]>([]);
 
-    const navigate=useNavigate();
+    useEffect(() => { loadArtifacts(); }, [status]);
+    useEffect(() => { loadTags(); }, []);
 
-    const [artifacts,setArtifacts]=useState<Artifact[]>([]);
-    const [status,setStatus]=useState<string>("draft");
-    const [loading,setLoading]=useState(false);
-
-    const [search,setSearch]=useState("");
-    const [authorSearch,setAuthorSearch]=useState("");
-    const [yearFilter,setYearFilter]=useState<number>();
-    const [typeFilter,setTypeFilter]=useState("");
-    const [tagFilter,setTagFilter]=useState<number[]>([]);
-
-
-    useEffect(()=>{
-        loadArtifacts();
-    },[status]);
-
-
-    async function loadArtifacts(){
-
-        try{
-
+    async function loadArtifacts() {
+        try {
             setLoading(true);
-
-            const data=
-                await getCuratorArtifacts(
-                    status
-                );
-
+            const data = await getCuratorArtifacts(status);
             setArtifacts(data);
-
-        }catch(error){
-
+        } catch {
             message.error(
                 "Ошибка загрузки работ"
             );
 
-        }finally{
-
+        } finally {
             setLoading(false);
-
         }
-
     }
 
+    async function loadTags() {
+        try {
+            const data = await getAll();
+            setAllTags(data);
+        } catch {
+            message.error(
+                "Ошибка загрузки тегов"
+            );
+        }
+    }
 
-    const filteredArtifacts =
-        artifacts.filter(
-            artifact=>{
+    function getYear(date: string) {
+        return new Date(date).getFullYear();
+    }
 
-                const matchesTitle =
-                    artifact.title
-                        .toLowerCase()
-                        .includes(
-                            search.toLowerCase()
-                        );
+    const filteredArtifacts = artifacts.filter(artifact => {
+        const matchesTitle = artifact.title.toLowerCase().includes(search.toLowerCase());
 
+        const matchesAuthor = !authorSearch || artifact.author_name?.toLowerCase()
+            .includes(authorSearch.toLowerCase());
 
-                const matchesAuthor =
-                    !authorSearch ||
-                    artifact.author_name
-                        ?.toLowerCase()
-                        .includes(
-                            authorSearch.toLowerCase()
-                        );
+        const matchesYear = !yearFilter || getYear(artifact.created_at) === yearFilter;
 
+        const matchesType = !typeFilter || artifact.type === typeFilter;
 
-                const year =
-                    new Date(
-                        artifact.created_at
-                    )
-                    .getFullYear();
+        const matchesTags = tagFilter.length === 0 || artifact.tags.some(tag => tagFilter.includes(tag.id));
 
-
-                const matchesYear =
-                    !yearFilter ||
-                    year===yearFilter;
-
-
-                const matchesType =
-                    !typeFilter ||
-                    artifact.type===typeFilter;
-
-
-                const matchesTags =
-                    tagFilter.length===0 ||
-                    artifact.tags.some(
-                        tag=>
-                            tagFilter.includes(
-                                tag.id
-                            )
-                    );
-
-
-                return (
-                    matchesTitle &&
-                    matchesAuthor &&
-                    matchesYear &&
-                    matchesType &&
-                    matchesTags
-                );
-
-            }
+        return (
+            matchesTitle &&
+            matchesAuthor &&
+            matchesYear &&
+            matchesType &&
+            matchesTags
         );
-
-
-    function getYear(
-        date:string
-    ){
-
-        return new Date(date)
-            .getFullYear();
-
     }
+    );
 
-
-    const columns=[
-
+    const columns = [
         {
-            title:"Название",
-            dataIndex:"title"
+            title: "Название",
+            dataIndex: "title",
+            key: "title"
         },
-
         {
-            title:"Тип",
-            dataIndex:"type",
-            render:(type:string)=>(
-
+            title: "Тип",
+            dataIndex: "type",
+            key: "type",
+            render: (type: string) => (
                 <Tag>
                     {
                         {
-                            vkr:"ВКР",
-                            article:"Статья",
-                            talk:"Доклад",
-                            event:"Мероприятие"
+                            vkr: "ВКР",
+                            article: "Статья",
+                            talk: "Доклад",
+                            event: "Мероприятие"
                         }[type] || type
                     }
                 </Tag>
-
             )
         },
 
-
         {
-            title:"Автор",
-            dataIndex:"author_name",
-            render:(value:string)=>
+            title: "Автор",
+            dataIndex: "author_name",
+            key: "author_name",
+            render: (value: string) =>
                 value || "Не указан"
         },
-
-
         {
-            title:"Год",
-            render:(
-                _:unknown,
-                record:Artifact
-            )=>
+            title: "Год",
+            key: "year",
+            render: (
+                _: unknown,
+                record: Artifact
+            ) =>
                 getYear(
                     record.created_at
                 )
         },
 
-
         {
-            title:"Теги",
-            render:(
-                _:unknown,
-                record:Artifact
-            )=>(
-
+            title: "Теги",
+            key: "tags",
+            render: (
+                _: unknown,
+                record: Artifact
+            ) => (
                 <>
                     {
                         record.tags.map(
-                            tag=>(
-
+                            tag => (
                                 <Tag
-                                    key={tag.id}
+                                    key={
+                                        tag.id
+                                    }
                                 >
-                                    {tag.name}
+                                    {
+                                        tag.name
+                                    }
                                 </Tag>
-
                             )
                         )
                     }
                 </>
-
             )
         },
 
-
         {
-            title:"Действия",
-
-            render:(
-                _:unknown,
-                record:Artifact
-            )=>(
-
+            title: "Действия",
+            key: "actions",
+            render: (
+                _: unknown,
+                record: Artifact
+            ) => (
                 <Button
                     type="primary"
-                    onClick={()=>
+                    onClick={() => {
                         navigate(
                             `/curator/artifact/${record.id}`
-                        )
-                    }
+                        );
+                    }}
                 >
                     Открыть
                 </Button>
-
             )
         }
-
     ];
 
-
-    return(
-
-        <div
-            className="page-container"
-        >
-
+    return (
+        <div className="page-container">
             <h1>
                 Управление публикациями
             </h1>
 
-
             <Segmented
-
-                style={{
-                    marginBottom:24
-                }}
-
                 value={status}
-
                 onChange={
-                    value=>
+                    value =>
                         setStatus(
                             value.toString()
                         )
                 }
-
                 options={[
                     {
-                        label:"На проверке",
-                        value:"draft"
+                        label: "На проверке",
+                        value: "draft"
                     },
                     {
-                        label:"Одобрены",
-                        value:"approved"
-                    },
-                    {
-                        label:"Отклонены",
-                        value:"rejected"
+                        label: "Одобрены",
+                        value: "approved"
                     }
                 ]}
-
+                style={{
+                    marginBottom: 24
+                }}
             />
-
 
             <Row
                 gutter={16}
                 style={{
-                    marginBottom:24
+                    marginBottom: 24
                 }}
             >
-
                 <Col span={6}>
                     <Card title="Всего">
-                        {artifacts.length}
+                        {
+                            artifacts.length
+                        }
                     </Card>
                 </Col>
-
 
                 <Col span={6}>
                     <Card title="Показано">
-                        {filteredArtifacts.length}
+                        {
+                            filteredArtifacts.length
+                        }
                     </Card>
                 </Col>
-
-
             </Row>
-
-
 
             <Row
                 gutter={16}
                 style={{
-                    marginBottom:24
+                    marginBottom: 24
                 }}
             >
-
                 <Col span={5}>
                     <Input
                         placeholder="Название"
                         onChange={
-                            e=>
+                            e =>
                                 setSearch(
                                     e.target.value
                                 )
@@ -310,12 +233,11 @@ export default function Queue(){
                     />
                 </Col>
 
-
                 <Col span={5}>
                     <Input
                         placeholder="Автор"
                         onChange={
-                            e=>
+                            e =>
                                 setAuthorSearch(
                                     e.target.value
                                 )
@@ -323,82 +245,76 @@ export default function Queue(){
                     />
                 </Col>
 
-
                 <Col span={4}>
                     <Select
                         allowClear
                         placeholder="Год"
                         style={{
-                            width:"100%"
+                            width: "100%"
                         }}
                         onChange={
                             setYearFilter
                         }
-                        options={
-                            [
-                                ...new Set(
-                                    artifacts.map(
-                                        item=>
-                                            getYear(
-                                                item.created_at
-                                            )
-                                    )
+                        options={[
+                            ...new Set(
+                                artifacts.map(
+                                    item =>
+                                        getYear(
+                                            item.created_at
+                                        )
                                 )
-                            ]
-                            .map(
-                                year=>({
-                                    label:year,
-                                    value:year
-                                })
                             )
-                        }
+                        ].map(
+                            year => ({
+                                label: year,
+                                value: year
+                            })
+                        )}
                     />
                 </Col>
-
 
                 <Col span={5}>
                     <Select
                         allowClear
                         placeholder="Тип"
                         style={{
-                            width:"100%"
+                            width: "100%"
                         }}
                         onChange={
-                            value=>
+                            value =>
                                 setTypeFilter(
                                     value || ""
                                 )
                         }
                         options={[
                             {
-                                label:"ВКР",
-                                value:"vkr"
+                                label: "ВКР",
+                                value: "vkr"
                             },
                             {
-                                label:"Статья",
-                                value:"article"
+                                label: "Статья",
+                                value: "article"
                             },
                             {
-                                label:"Доклад",
-                                value:"talk"
+                                label: "Доклад",
+                                value: "talk"
                             },
                             {
-                                label:"Мероприятие",
-                                value:"event"
+                                label: "Мероприятие",
+                                value: "event"
                             }
                         ]}
                     />
                 </Col>
 
-
                 <Col span={5}>
                     <Select
                         mode="multiple"
-                        showSearch
                         allowClear
+                        showSearch
                         placeholder="Теги"
                         style={{
-                            width:"100%"
+                            width: "100%"
                         }}
                         value={tagFilter}
                         onChange={
@@ -406,35 +322,29 @@ export default function Queue(){
                         }
                         optionFilterProp="label"
                         options={
-                            tags.map(
-                                tag=>({
-                                    label:tag.name,
-                                    value:tag.id
+                            allTags.map(
+                                tag => ({
+                                    label:
+                                        tag.name,
+                                    value:
+                                        tag.id
                                 })
                             )
                         }
                     />
                 </Col>
-
             </Row>
 
-
             <Table
-
                 rowKey="id"
-
                 loading={loading}
-
                 columns={columns}
-
                 dataSource={
                     filteredArtifacts
                 }
-
                 pagination={{
-                    pageSize:10
+                    pageSize: 10
                 }}
-
             />
         </div>
     );

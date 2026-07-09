@@ -1,12 +1,11 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, select
-
+from fastapi import APIRouter, Depends, HTTPException, Query, requests
+from sqlmodel import Session, select, func
 from ..converters import to_artifact_read
 from ..db import get_session
 from ..models import Artifact, Request as RequestModel, Tag, User
-from ..schemas import ArtifactRead, RequestRead, RequestStatusUpdate, TagsUpdate
+from ..schemas import ArtifactRead, ArtifactShortRead, PartnerShortRead, RequestRead, RequestStatusUpdate, TagsUpdate
 from ..security import require_role
 
 router = APIRouter(prefix="/curator", tags=["curator"])
@@ -90,8 +89,23 @@ def list_requests(
     session: Session = Depends(get_session),
 ):
     requests = session.exec(select(RequestModel)).all()
-    return [RequestRead(**r.dict()) for r in requests]
-
+    result = []
+    for r in requests:
+        result.append(RequestRead(id=r.id,
+                artifact=ArtifactShortRead(
+                    id=r.artifact.id,
+                    title=r.artifact.title
+                ),
+                partner=PartnerShortRead(
+                    id=r.partner.id,
+                    name=r.partner.name
+                ),
+                type=r.type,
+                status=r.status,
+                created_at=r.created_at
+            )
+        )
+    return result
 
 @router.patch("/requests/{request_id}", response_model=RequestRead)
 def update_request_status(
@@ -108,3 +122,28 @@ def update_request_status(
     session.commit()
     session.refresh(req)
     return RequestRead(**req.dict())
+
+@router.get("/artifacts/{artifact_id}", response_model=ArtifactRead)
+def get_artifact(
+    artifact_id: int,
+    user: User = Depends(require_role("curator")),
+    session: Session = Depends(get_session),
+):
+    artifact = _get_artifact_or_404(artifact_id, session)
+    return to_artifact_read(artifact)
+
+
+@router.get("/stats")
+def curator_stats(
+    user: User = Depends(require_role("curator")),
+    session: Session = Depends(get_session),
+):
+    draft_count = session.exec(
+        select(func.count())
+        .select_from(Artifact)
+        .where(Artifact.curator_status == "draft")).one()
+    requests_count = session.exec(
+        select(func.count())
+        .select_from(RequestModel)
+        .where(RequestModel.status == "sent")).one()
+    return {"draft": draft_count, "requests": requests_count}

@@ -1,4 +1,4 @@
-import {Form, Input, Button, Select, Layout, message} from "antd";
+import {Form, Input, Button, Layout, message} from "antd";
 import {useNavigate} from "react-router-dom";
 import Header from "../components/Header";
 import {login} from "../api/auth";
@@ -102,32 +102,6 @@ export default function Login(){
                             >
 
                                 <Input.Password/>
-
-                            </Form.Item>
-
-
-                            <Form.Item
-                                label="Роль"
-                                name="role"
-                                initialValue="curator"
-                            >
-
-                                <Select
-                                    options={[
-                                        {
-                                            label:"Участник",
-                                            value:"participant"
-                                        },
-                                        {
-                                            label:"Партнёр",
-                                            value:"partner"
-                                        },
-                                        {
-                                            label:"Куратор",
-                                            value:"curator"
-                                        }
-                                    ]}
-                                />
 
                             </Form.Item>
 

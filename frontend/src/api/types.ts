@@ -10,7 +10,7 @@ export type ArtifactType =
     | "event";
 
 export type RequestStatus =
-    | "pending"
+    | "sent"
     | "in_progress"
     | "done";
 
@@ -34,10 +34,24 @@ export interface Artifact {
 
 export interface ArtifactRequest {
     id:number;
-    artifactId:number;
-    artifactTitle:string;
-    partnerName:string;
-    requestType:string;
+    artifact_id:number;
+    partner_id:number;
+    type:string;
     status:RequestStatus;
-    createdAt:string;
+    created_at:string;
+}
+
+export interface ArtifactRequest {
+    id:number;
+    artifact:{
+        id:number;
+        title:string;
+    };
+    partner:{
+        id:number;
+        name:string;
+    };
+    type:string;
+    status: RequestStatus;
+    created_at:string;
 }

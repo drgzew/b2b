@@ -14,6 +14,9 @@ class ArtifactCreate(SQLModel):
     author_name: Optional[str] = None
     tags: List[str] = []  # имена тегов; несуществующие теги будут созданы
 
+class TagRead(SQLModel):
+    id: int
+    name: str
 
 class ArtifactRead(SQLModel):
     id: int
@@ -25,7 +28,7 @@ class ArtifactRead(SQLModel):
     access_level: str
     author_name: Optional[str]
     created_at: datetime
-    tags: List[str] = []
+    tags: List[TagRead] = []
 
 
 # --- Аутентификация ---
@@ -64,14 +67,22 @@ class RequestCreate(SQLModel):
     type: str  # full_text | internship | rnd
 
 
+class ArtifactShortRead(SQLModel):
+    id: int
+    title: str
+
+
+class PartnerShortRead(SQLModel):
+    id: int
+    name: str
+
 class RequestRead(SQLModel):
     id: int
-    artifact_id: int
-    partner_id: int
+    artifact: ArtifactShortRead
+    partner: PartnerShortRead
     type: str
     status: str
     created_at: datetime
-
 
 # --- Куратор ---
 

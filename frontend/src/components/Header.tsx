@@ -1,24 +1,19 @@
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderItem {
-    label:string;
-    path:string;
+    label: string;
+    path: string;
+    badge?: number;
 }
 
 interface HeaderProps {
-    title?:string;
-    menuItems?:HeaderItem[];
-    role?:string;
+    title?: string;
+    menuItems?: HeaderItem[];
+    role?: string;
 }
 
-export default function Header({
-    title,
-    menuItems = [],
-    role
-}:HeaderProps) {
-
+export default function Header({title,menuItems = [],}: HeaderProps) {
     const navigate = useNavigate();
-
     return (
         <header className="header">
             <div className="header-left">
@@ -28,7 +23,7 @@ export default function Header({
                         alt="Логотип ТюмГУ"
                         className="logo-tmu"
                     />
-
+                    
                     <span className="logo-text">
                         Партнёрус
                     </span>
@@ -54,10 +49,8 @@ export default function Header({
             {
                 menuItems.length > 0 && (
                     <nav className="nav">
-
                         {
                             menuItems.map(item => (
-
                                 <a
                                     key={item.path}
                                     onClick={() =>
@@ -65,17 +58,13 @@ export default function Header({
                                     }
                                 >
                                     {item.label}
+                                    {
+                                        item.badge !== undefined &&
+                                        ` (${item.badge})`
+                                    }
                                 </a>
 
                             ))
-                        }
-
-                        {
-                            role && (
-                                <span>
-                                    {role}
-                                </span>
-                            )
                         }
 
                         <a
