@@ -9,7 +9,7 @@ class ArtifactCreate(SQLModel):
     type: str
     annotation: str
     file_path: Optional[str] = None
-    status: str = "draft"
+    curator_status: str = "draft"
     access_level: str = "none"
     author_name: Optional[str] = None
     tags: List[str] = []  # имена тегов; несуществующие теги будут созданы
@@ -21,8 +21,63 @@ class ArtifactRead(SQLModel):
     type: str
     annotation: str
     file_path: Optional[str]
-    status: str
+    curator_status: str
     access_level: str
     author_name: Optional[str]
     created_at: datetime
     tags: List[str] = []
+
+
+# --- Аутентификация ---
+
+class LoginRequest(SQLModel):
+    email: str
+    password: str
+
+
+class TokenResponse(SQLModel):
+    access_token: str
+    role: str
+
+
+# --- Партнёр ---
+
+class PartnerRead(SQLModel):
+    id: int
+    name: str
+    contact_email: str
+
+
+class SubscriptionRead(SQLModel):
+    id: int
+    name: Optional[str]
+    tags: List[str]
+
+
+class DigestEntry(SQLModel):
+    artifact: ArtifactRead
+    relevance: float
+
+
+class RequestCreate(SQLModel):
+    artifact_id: int
+    type: str  # full_text | internship | rnd
+
+
+class RequestRead(SQLModel):
+    id: int
+    artifact_id: int
+    partner_id: int
+    type: str
+    status: str
+    created_at: datetime
+
+
+# --- Куратор ---
+
+class TagsUpdate(SQLModel):
+    tag_ids: List[int]
+
+
+class RequestStatusUpdate(SQLModel):
+    status: str  # in_progress | done
