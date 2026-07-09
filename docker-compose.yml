@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://app:app@db:5432/app
+      # Берётся из .env в корне проекта. Если .env нет или переменная не задана —
+      # используется дев-заглушка (см. .env.example).
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./api:/app
+
+  # Пустой контейнер под фронт — чтобы docker compose up поднимал всё одной командой.
+  # Заменить на реальный Dockerfile, когда появится фронтенд-код.
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "echo 'frontend placeholder, waiting for real app' && tail -f /dev/null"
+    volumes:
+      - ./frontend:/app
+
+volumes:
+  pgdata:
