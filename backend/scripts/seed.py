@@ -1,17 +1,18 @@
 """
 Наполняет БД тестовыми данными для пилота:
-- 5 фейковых артефактов (ВКР, статьи, доклад) с тегами
-- 2 партнёра (ГПН, СИБУР) с подписками из нескольких тегов
+- 8 фейковых артефактов (ВКР, статьи, доклад) с тегами
+- 3 партнёра (Газпромнефть, Яндекс, ЗапСибЭкоЦентр) с подписками из нескольких тегов
   (несколько тегов на подписку — чтобы индекс Жаккара имел смысл)
-- 3 пользователя для входа: 2 партнёрских и 1 куратор
+- 4 пользователя для входа: 3 партнёрских и 1 куратор
 
 Запуск (из контейнера api или локально с настроенным DATABASE_URL):
     python scripts/seed.py
 
 Логины после сидирования:
-    gpn@demo.ru     / pass123  (роль: partner, партнёр: Газпромнефть)
-    sibur@demo.ru   / pass123  (роль: partner, партнёр: СИБУР)
-    curator@demo.ru / pass123  (роль: curator)
+    gpn@demo.ru       / pass123  (роль: partner, партнёр: Газпромнефть)
+    yandex@demo.ru    / pass123  (роль: partner, партнёр: Яндекс)
+    eco@demo.ru       / pass123  (роль: partner, партнёр: ЗапСибЭкоЦентр)
+    curator@demo.ru   / pass123  (роль: curator)
 """
 import os
 import sys
@@ -36,6 +37,7 @@ def get_or_create_tag(session: Session, name: str) -> Tag:
 
 
 ARTIFACTS = [
+    # Существующие артефакты
     {
         "title": "Оптимизация буровых растворов",
         "type": "vkr",
@@ -81,6 +83,43 @@ ARTIFACTS = [
         "author_name": "М. Орлова",
         "tag_names": ["цифровизация"],
     },
+    # Новые артефакты для расширения тематик
+    {
+        "title": "Применение нейросетей для интерпретации геофизических данных",
+        "type": "article",
+        "annotation": "Исследование использования свёрточных нейросетей для анализа сейсмических разрезов",
+        "curator_status": "approved",
+        "access_level": "full",
+        "author_name": "А. Козлов",
+        "tag_names": ["нефтегаз", "цифровизация", "машинное обучение"],
+    },
+    {
+        "title": "Биоремедиация нефтезагрязнённых почв",
+        "type": "vkr",
+        "annotation": "ВКР по очистке почв с использованием микроорганизмов-деструкторов",
+        "curator_status": "approved",
+        "access_level": "annotation_only",
+        "author_name": "Е. Зайцева",
+        "tag_names": ["экология", "биотехнологии", "нефтегаз"],
+    },
+    {
+        "title": "Разработка биопрепаратов для очистки сточных вод",
+        "type": "article",
+        "annotation": "Статья о создании консорциумов бактерий для очистки промышленных стоков",
+        "curator_status": "approved",
+        "access_level": "full",
+        "author_name": "П. Соколов",
+        "tag_names": ["биотехнологии", "экология"],
+    },
+    {
+        "title": "Прогнозирование отказов оборудования с помощью ML",
+        "type": "talk",
+        "annotation": "Доклад о применении градиентного бустинга для предиктивного обслуживания",
+        "curator_status": "approved",
+        "access_level": "full",
+        "author_name": "М. Иванова",
+        "tag_names": ["цифровизация", "машинное обучение"],
+    },
 ]
 
 
@@ -88,9 +127,11 @@ def seed() -> None:
     init_db()
 
     with Session(engine) as session:
+        # Собираем все имена тегов из артефактов
         all_tag_names = {name for a in ARTIFACTS for name in a["tag_names"]}
         tags = {name: get_or_create_tag(session, name) for name in all_tag_names}
 
+        # Создаём артефакты
         for data in ARTIFACTS:
             tag_names = data.pop("tag_names")
             artifact = Artifact(**data)
@@ -98,23 +139,33 @@ def seed() -> None:
             session.add(artifact)
         session.commit()
 
+        # Создаём трёх партнёров
         gpn = Partner(name="Газпромнефть — R&D", contact_email="rnd@gpn-demo.ru")
-        sibur = Partner(name="СИБУР — Инновации", contact_email="innovations@sibur-demo.ru")
+        yandex = Partner(name="Яндекс — ИТ", contact_email="it@yandex-demo.ru")
+        eco = Partner(name="ЗапСибЭкоЦентр", contact_email="eco@zsec-demo.ru")
         session.add(gpn)
-        session.add(sibur)
+        session.add(yandex)
+        session.add(eco)
         session.commit()
         session.refresh(gpn)
-        session.refresh(sibur)
+        session.refresh(yandex)
+        session.refresh(eco)
 
+        # Подписки: у каждого партнёра своя подписка с несколькими тегами
         gpn_sub = Subscription(partner_id=gpn.id, name="Нефтегаз и цифровизация")
-        gpn_sub.tags = [tags["нефтегаз"], tags["цифровизация"], tags["энергетика"]]
+        gpn_sub.tags = [tags["нефтегаз"], tags["цифровизация"]]
         session.add(gpn_sub)
 
-        sibur_sub = Subscription(partner_id=sibur.id, name="Цифровизация и логистика")
-        sibur_sub.tags = [tags["цифровизация"], tags["логистика"]]
-        session.add(sibur_sub)
+        yandex_sub = Subscription(partner_id=yandex.id, name="Цифровизация и ML")
+        yandex_sub.tags = [tags["цифровизация"], tags["машинное обучение"]]
+        session.add(yandex_sub)
+
+        eco_sub = Subscription(partner_id=eco.id, name="Экология и биотехнологии")
+        eco_sub.tags = [tags["экология"], tags["биотехнологии"]]
+        session.add(eco_sub)
         session.commit()
 
+        # Пользователи: по одному на каждого партнёра + куратор
         users = [
             User(
                 email="gpn@demo.ru",
@@ -123,10 +174,16 @@ def seed() -> None:
                 partner_id=gpn.id,
             ),
             User(
-                email="sibur@demo.ru",
+                email="yandex@demo.ru",
                 password_hash=hash_password("pass123"),
                 role="partner",
-                partner_id=sibur.id,
+                partner_id=yandex.id,
+            ),
+            User(
+                email="eco@demo.ru",
+                password_hash=hash_password("pass123"),
+                role="partner",
+                partner_id=eco.id,
             ),
             User(
                 email="curator@demo.ru",
@@ -138,8 +195,8 @@ def seed() -> None:
         session.commit()
 
         print(
-            f"Готово: {len(ARTIFACTS)} артефактов, 2 партнёра, 2 подписки, 3 пользователя.\n"
-            "Логины: gpn@demo.ru / sibur@demo.ru / curator@demo.ru, пароль везде pass123"
+            f"Готово: {len(ARTIFACTS)} артефактов, 3 партнёра, 3 подписки, 4 пользователя.\n"
+            "Логины: gpn@demo.ru / yandex@demo.ru / eco@demo.ru / curator@demo.ru, пароль везде pass123"
         )
 
 
