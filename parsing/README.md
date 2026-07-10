@@ -36,8 +36,20 @@ python -m scripts.normalize
 
 ## Импорт данных в базу данных
 
+Удалить ранее созданные контейнеры:
+```cmd
+docker-compose down --volumes --rmi all
+```
+
+Поднять контейнеры:
+
 ```cmd
 docker-compose up
+```
+
+Выполнить в другом терминале:
+
+```cmd
 docker-compose exec db pg_isready -U app -d app
 docker exec b2b-backend-1 mkdir -p /data
 docker cp parsing b2b-backend-1:/data
