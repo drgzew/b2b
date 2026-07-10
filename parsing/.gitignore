@@ -3,5 +3,7 @@ __pycache__
 
 docs/screens/
 docs/taxonomy.md
+docs/taxonomy.json
 
 data/
+data-report.md
