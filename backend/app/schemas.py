@@ -57,6 +57,19 @@ class SubscriptionRead(SQLModel):
     tags: List[str]
 
 
+class SubscriptionWrite(SQLModel):
+    """Одна тема из набора, который партнёр выбирает в «Управлении подписками»."""
+
+    name: str
+    tags: List[str] = []  # имена тегов темы
+
+
+class SubscriptionsUpdate(SQLModel):
+    """Полный набор подписок партнёра — заменяет предыдущий целиком."""
+
+    subscriptions: List[SubscriptionWrite]
+
+
 class DigestEntry(SQLModel):
     artifact: ArtifactRead
     relevance: float

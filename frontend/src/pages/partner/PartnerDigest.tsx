@@ -1,100 +1,118 @@
-import React, { useState, useMemo } from 'react';
-import { Card, Typography, Button, Tag, Space, Checkbox, Select, Input } from 'antd';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, Typography, Button, Tag, Checkbox, Select, Input, Spin, Empty, message } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
-import { topics } from '../../mocks/topics';
-import { artifacts } from '../../mocks/artifacts';
+import { partnerAPI } from '../../api/partner';
+import type { Subscription, DigestEntry } from '../../api/partner';
+import ArtifactCard from '../../components/ArtifactCard';
 
-const { Title, Paragraph, Text } = Typography;
-
-const hasCommonTag = (artifactTags: any[], topicTags: any[]) => {
-  const artifactTagIds = artifactTags.map(t => t.id);
-  const topicTagIds = topicTags.map(t => t.id);
-  return artifactTagIds.some(id => topicTagIds.includes(id));
-};
+const { Title, Text } = Typography;
 
 const PartnerDigest: React.FC = () => {
   const { topicId } = useParams<{ topicId: string }>();
   const navigate = useNavigate();
   const topicIdNum = topicId ? parseInt(topicId) : undefined;
 
-  const savedSubscriptions = localStorage.getItem('partner_subscriptions');
-  const selectedTopicIds: number[] = savedSubscriptions ? JSON.parse(savedSubscriptions) : [1, 2];
-
-  const subscribedTopics = topics.filter(t => selectedTopicIds.includes(t.id));
-
-  const currentTopic = topicIdNum ? topics.find(t => t.id === topicIdNum) : undefined;
+  const [loading, setLoading] = useState(true);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [entries, setEntries] = useState<DigestEntry[]>([]);
+  const [currentTopicName, setCurrentTopicName] = useState('');
 
   const [filterTopicId, setFilterTopicId] = useState<number | undefined>(topicIdNum);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [searchText, setSearchText] = useState('');
 
-  const allMatchedArtifacts = useMemo(() => {
-    const matched = artifacts.filter(art =>
-      subscribedTopics.some(topic => hasCommonTag(art.tags, topic.tags))
-    );
-    return matched;
-  }, [subscribedTopics]);
+  // Подписки грузим один раз — они нужны и для фильтра по теме, и для названий.
+  useEffect(() => {
+    partnerAPI
+      .getSubscriptions()
+      .then(res => setSubscriptions(res.data))
+      .catch(() => message.error('Не удалось загрузить подписки'));
+  }, []);
 
-  const artifactsByTopic = useMemo(() => {
+  // Дайджест перезагружаем при смене темы или когда подписки подгрузились.
+  useEffect(() => {
     if (filterTopicId) {
-      const topic = topics.find(t => t.id === filterTopicId);
-      if (!topic) return allMatchedArtifacts;
-      return allMatchedArtifacts.filter(art => hasCommonTag(art.tags, topic.tags));
+      loadDigestForTopic(filterTopicId);
+    } else {
+      loadAllDigests(subscriptions);
     }
-    return allMatchedArtifacts;
-  }, [allMatchedArtifacts, filterTopicId]);
+  }, [filterTopicId, subscriptions]);
 
-const availableTags = useMemo(() => {
-  const tagSet = new Set<number>();
-  artifactsByTopic.forEach(art => art.tags.forEach(t => tagSet.add(t.id)));
-  const result: { id: number; name: string }[] = [];
-  for (const id of tagSet) {
-    let found = false;
-    for (const topic of topics) {
-      const tag = topic.tags.find(t => t.id === id);
-      if (tag) {
-        result.push(tag);
-        found = true;
-        break;
+  const loadDigestForTopic = async (id: number) => {
+    setLoading(true);
+    try {
+      const res = await partnerAPI.getDigest(id);
+      setEntries(res.data);
+      const found = subscriptions.find(s => s.id === id);
+      setCurrentTopicName(found ? found.name : '');
+    } catch (error) {
+      message.error('Не удалось загрузить дайджест для темы');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAllDigests = async (subs: Subscription[]) => {
+    setLoading(true);
+    try {
+      // Собираем дайджесты всех подписок. Один и тот же артефакт может попасть
+      // в несколько тем — оставляем его с максимальной релевантностью.
+      const byId = new Map<number, DigestEntry>();
+      for (const sub of subs) {
+        try {
+          const res = await partnerAPI.getDigest(sub.id);
+          res.data.forEach(entry => {
+            const existing = byId.get(entry.artifact.id);
+            if (!existing || entry.relevance > existing.relevance) {
+              byId.set(entry.artifact.id, entry);
+            }
+          });
+        } catch {
+          // пропускаем подписку, если её дайджест не загрузился
+        }
       }
+      setEntries(Array.from(byId.values()));
+      setCurrentTopicName('');
+    } catch (error) {
+      message.error('Не удалось загрузить дайджесты');
+    } finally {
+      setLoading(false);
     }
-  }
-  return result;
-}, [artifactsByTopic]);
-  const filteredArtifacts = useMemo(() => {
-    let result = artifactsByTopic;
+  };
 
+  const availableTags = useMemo(() => {
+    const map = new Map<number, { id: number; name: string }>();
+    entries.forEach(e =>
+      e.artifact.tags.forEach(t => {
+        if (!map.has(t.id)) map.set(t.id, t);
+      })
+    );
+    return Array.from(map.values());
+  }, [entries]);
+
+  const filteredEntries = useMemo(() => {
+    let result = entries;
     if (selectedTagIds.length > 0) {
-      result = result.filter(art =>
-        art.tags.some(t => selectedTagIds.includes(t.id))
+      result = result.filter(e =>
+        e.artifact.tags.some(t => selectedTagIds.includes(t.id))
       );
     }
-
     if (searchText.trim()) {
       const s = searchText.toLowerCase().trim();
-      result = result.filter(art =>
-        art.title.toLowerCase().includes(s) ||
-        art.annotation.toLowerCase().includes(s) ||
-        art.tags.some(t => t.name.toLowerCase().includes(s))
+      result = result.filter(e =>
+        e.artifact.title.toLowerCase().includes(s) ||
+        e.artifact.annotation.toLowerCase().includes(s) ||
+        e.artifact.tags.some(t => t.name.toLowerCase().includes(s))
       );
     }
-
     return result;
-  }, [artifactsByTopic, selectedTagIds, searchText]);
+  }, [entries, selectedTagIds, searchText]);
 
   const handleTagToggle = (tagId: number) => {
     setSelectedTagIds(prev =>
       prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
     );
   };
-
-  const formatType = (type: string) => {
-    if (type === 'vkr') return 'ВКР';
-    if (type === 'article') return 'Статья';
-    return type;
-  };
-
-  const getYear = (createdAt: string) => new Date(createdAt).getFullYear();
 
   const handleTopicFilterChange = (value: number | undefined) => {
     setFilterTopicId(value);
@@ -105,16 +123,54 @@ const availableTags = useMemo(() => {
     }
   };
 
+  // Кнопка «Запросить полный текст» → POST /partner/requests с type=full_text
+  const handleFullTextRequest = async (artifactId: number) => {
+    try {
+      const response = await partnerAPI.createRequest({ artifact_id: artifactId, type: 'full_text' });
+      if (response.status === 200) {
+        message.success('Запрос на полный текст отправлен куратору');
+      }
+    } catch (error: any) {
+      console.error('Full text request error:', error);
+      message.error(error.response?.data?.detail || 'Не удалось отправить запрос');
+    }
+  };
+
+  // Кнопка «Пригласить на стажировку» → POST /partner/requests с type=internship
+  const handleInternshipRequest = async (artifactId: number) => {
+    try {
+      const response = await partnerAPI.createRequest({ artifact_id: artifactId, type: 'internship' });
+      if (response.status === 200) {
+        message.success('Запрос на стажировку отправлен');
+      }
+    } catch (error: any) {
+      console.error('Internship request error:', error);
+      message.error(error.response?.data?.detail || 'Не удалось отправить запрос');
+    }
+  };
+
+  // Заглушка для «Сохранить в избранное» (избранное пока не хранится на сервере)
+  const handleSaveFavorite = (title: string) => {
+    message.success(`«${title}» добавлено в избранное`);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 50 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Title level={4}>
-          Дайджест {currentTopic ? `: ${currentTopic.name}` : '(все подписки)'}
+          Дайджест {currentTopicName ? `: ${currentTopicName}` : '(все подписки)'}
         </Title>
         <Button onClick={() => navigate('/partner/dashboard')}>← На дашборд</Button>
       </div>
 
-      {/* Фильтры */}
       <Card style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
           <div style={{ flex: 1, minWidth: 200 }}>
@@ -125,7 +181,7 @@ const availableTags = useMemo(() => {
               allowClear
               value={filterTopicId}
               onChange={handleTopicFilterChange}
-              options={subscribedTopics.map(t => ({ label: t.name, value: t.id }))}
+              options={subscriptions.map(s => ({ label: s.name, value: s.id }))}
             />
           </div>
           <div style={{ flex: 2, minWidth: 200 }}>
@@ -172,30 +228,26 @@ const availableTags = useMemo(() => {
         )}
       </Card>
 
-      {filteredArtifacts.length === 0 ? (
+      {filteredEntries.length === 0 ? (
         <Card>
-          <Text type="secondary">Нет артефактов, соответствующих фильтрам</Text>
+          <Empty
+            description={
+              entries.length === 0
+                ? 'Пока нет релевантных работ по этой подписке'
+                : 'Ничего не найдено по заданным фильтрам'
+            }
+          />
         </Card>
       ) : (
-        filteredArtifacts.map(art => (
-          <Card key={art.id} style={{ marginBottom: 16 }}>
-            <Title level={5}>{art.title}</Title>
-            <div style={{ marginBottom: 8 }}>
-              <Text type="secondary">{art.author_name}</Text>
-              <Text type="secondary" style={{ marginLeft: 16 }}>{getYear(art.created_at)}</Text>
-              <Tag color="#00AEEF" style={{ marginLeft: 16 }}>{formatType(art.type)}</Tag>
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              {art.tags.map(tag => (
-                <Tag key={tag.id} color="#e6f0fa" style={{ color: '#1a2a3a' }}>{tag.name}</Tag>
-              ))}
-            </div>
-            <Paragraph ellipsis={{ rows: 3 }}>{art.annotation}</Paragraph>
-            <Space>
-              <Button type="primary" style={{ background: '#00AEEF' }}>📩 Запросить полный текст</Button>
-              <Button>⭐ Сохранить в избранное</Button>
-            </Space>
-          </Card>
+        filteredEntries.map(entry => (
+          <ArtifactCard
+            key={entry.artifact.id}
+            artifact={entry.artifact}
+            relevance={entry.relevance}
+            onRequestFullText={handleFullTextRequest}
+            onInternship={handleInternshipRequest}
+            onSaveFavorite={handleSaveFavorite}
+          />
         ))
       )}
     </div>
