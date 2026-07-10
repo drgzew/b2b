@@ -555,6 +555,14 @@ def save_taxonomy_hierarchy(hierarchy, output_path):
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
 
+def assign_taxonomy_tags(work, taxonomy):
+    """ Assign tags based on taxonomy.
+    """
+    if not taxonomy:
+        return []
+    _, _, subfielfds, _ = build_taxonomy_flat([work])
+    return subfielfds
+
 def main():
     N = 200
 
@@ -584,9 +592,12 @@ def main():
     print(f"Скачано статей: {len(downloaded_paths)}")
 
     keywords = {}
-    for n, path in downloaded_paths.items():
-        text = file_extract_text(path)
-        keywords[n] = text_keywords_combined(text)
+    for n in range(len(works)):
+        kws = assign_taxonomy_tags(works[n], hierarchy)
+        if n in downloaded_paths:
+            text = file_extract_text(downloaded_paths[n])
+            kws += text_keywords_combined(text)
+        keywords[n] = list(set(kws)) if kws else None
 
     dump_works(works, keywords, "data/raw/openalex.json")
 
