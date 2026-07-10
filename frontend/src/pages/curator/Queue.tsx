@@ -21,14 +21,18 @@ export default function Queue() {
     useEffect(() => { loadTags(); }, []);
 
     async function loadArtifacts() {
+
         try {
             setLoading(true);
-            const data = await getCuratorArtifacts(status);
-            setArtifacts(data);
-        } catch {
-            message.error(
-                "Ошибка загрузки работ"
+            const data = await getCuratorArtifacts(
+                status === "all"
+                    ? undefined
+                    : status
             );
+            setArtifacts(data);
+
+        } catch {
+            message.error("Ошибка загрузки работ");
 
         } finally {
             setLoading(false);
@@ -100,40 +104,26 @@ export default function Queue() {
             title: "Автор",
             dataIndex: "author_name",
             key: "author_name",
-            render: (value: string) =>
-                value || "Не указан"
+            render: (value: string) => value || "Не указан"
         },
         {
             title: "Год",
             key: "year",
-            render: (
-                _: unknown,
-                record: Artifact
-            ) =>
-                getYear(
-                    record.created_at
-                )
+            render: (_: unknown, record: Artifact
+            ) => getYear(record.created_at)
         },
 
         {
             title: "Теги",
             key: "tags",
-            render: (
-                _: unknown,
-                record: Artifact
+            render: (_: unknown, record: Artifact
             ) => (
                 <>
                     {
                         record.tags.map(
                             tag => (
-                                <Tag
-                                    key={
-                                        tag.id
-                                    }
-                                >
-                                    {
-                                        tag.name
-                                    }
+                                <Tag key={tag.id}>
+                                    {tag.name}
                                 </Tag>
                             )
                         )
@@ -145,16 +135,12 @@ export default function Queue() {
         {
             title: "Действия",
             key: "actions",
-            render: (
-                _: unknown,
-                record: Artifact
+            render: (_: unknown, record: Artifact
             ) => (
                 <Button
                     type="primary"
                     onClick={() => {
-                        navigate(
-                            `/curator/artifact/${record.id}`
-                        );
+                        navigate(`/curator/artifact/${record.id}`);
                     }}
                 >
                     Открыть
@@ -165,82 +151,66 @@ export default function Queue() {
 
     return (
         <div className="page-container">
-            <h1>
+            <h1 style={{ marginBottom: 24 }}>
                 Управление публикациями
             </h1>
 
             <Segmented
                 value={status}
-                onChange={
-                    value =>
-                        setStatus(
-                            value.toString()
-                        )
-                }
+                onChange={(value) => setStatus(value.toString())}
                 options={[
+                    {
+                        label: "Все",
+                        value: "all"
+                    },
                     {
                         label: "На проверке",
                         value: "draft"
                     },
                     {
-                        label: "Одобрены",
+                        label: "Одобренные",
                         value: "approved"
+                    },
+                    {
+                        label: "Отказано",
+                        value: "rejected"
                     }
                 ]}
-                style={{
-                    marginBottom: 24
-                }}
+                style={{ marginBottom: 24 }}
             />
 
             <Row
                 gutter={16}
-                style={{
-                    marginBottom: 24
-                }}
+                style={{ marginBottom: 24 }}
             >
                 <Col span={6}>
-                    <Card title="Всего">
-                        {
-                            artifacts.length
-                        }
+                    <Card title="Всего" size="small">
+                        {artifacts.length}
                     </Card>
                 </Col>
 
                 <Col span={6}>
-                    <Card title="Показано">
-                        {
-                            filteredArtifacts.length
-                        }
+                    <Card title="Показано" size="small">
+                        {filteredArtifacts.length}
                     </Card>
                 </Col>
             </Row>
 
             <Row
                 gutter={16}
-                style={{
-                    marginBottom: 24
-                }}
+                style={{ marginBottom: 24 }}
             >
                 <Col span={5}>
                     <Input
                         placeholder="Название"
-                        onChange={
-                            e =>
-                                setSearch(
-                                    e.target.value
-                                )
-                        }
+                        onChange={e => setSearch(e.target.value)}
                     />
                 </Col>
 
                 <Col span={5}>
                     <Input
                         placeholder="Автор"
-                        onChange={
-                            e =>
-                                setAuthorSearch(
-                                    e.target.value
-                                )
+                        onChange={e => setAuthorSearch(e.target.value)
                         }
                     />
                 </Col>
@@ -249,19 +219,12 @@ export default function Queue() {
                     <Select
                         allowClear
                         placeholder="Год"
-                        style={{
-                            width: "100%"
-                        }}
-                        onChange={
-                            setYearFilter
-                        }
+                        style={{ width: "100%" }}
+                        onChange={setYearFilter}
                         options={[
                             ...new Set(
                                 artifacts.map(
-                                    item =>
-                                        getYear(
-                                            item.created_at
-                                        )
+                                    item => getYear(item.created_at)
                                 )
                             )
                         ].map(
@@ -277,15 +240,8 @@ export default function Queue() {
                     <Select
                         allowClear
                         placeholder="Тип"
-                        style={{
-                            width: "100%"
-                        }}
-                        onChange={
-                            value =>
-                                setTypeFilter(
-                                    value || ""
-                                )
-                        }
+                        style={{ width: "100%" }}
+                        onChange={value => setTypeFilter(value || "")}
                         options={[
                             {
                                 label: "ВКР",
@@ -313,13 +269,9 @@ export default function Queue() {
                         allowClear
                         showSearch
                         placeholder="Теги"
-                        style={{
-                            width: "100%"
-                        }}
+                        style={{ width: "100%" }}
                         value={tagFilter}
-                        onChange={
-                            setTagFilter
-                        }
+                        onChange={setTagFilter}
                         optionFilterProp="label"
                         options={
                             allTags.map(
@@ -339,11 +291,10 @@ export default function Queue() {
                 rowKey="id"
                 loading={loading}
                 columns={columns}
-                dataSource={
-                    filteredArtifacts
-                }
+                dataSource={filteredArtifacts}
                 pagination={{
-                    pageSize: 10
+                    pageSize: 10,
+                    showTotal: (total, range) =>`${range[0]}-${range[1]} из ${total}`
                 }}
             />
         </div>
