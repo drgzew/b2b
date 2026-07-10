@@ -55,3 +55,21 @@ export interface ArtifactRequest {
     status: RequestStatus;
     created_at:string;
 }
+
+
+export interface Subscription {
+  id: number;
+  name: string;
+  tags: string[];
+  description?: string;
+}
+
+export interface DigestItem {
+  artifact: Artifact;
+  relevance: number;
+}
+
+export interface RequestPayload {
+  artifact_id: number;
+  type: 'full_text' | 'internship' | 'rnd';
+}

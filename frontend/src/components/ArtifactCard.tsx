@@ -1,94 +1,82 @@
-import {Card, Typography, Progress, Button, Space} from "antd";
-const {Title, Paragraph, Text} = Typography;
+import React from 'react';
+import { Card, Typography, Button, Tag, Space, Progress } from 'antd';
+import type { Artifact } from '../api/partner';
+
+const { Title, Paragraph, Text } = Typography;
 
 interface ArtifactCardProps {
-    title:string;
-    authors:string[];
-    abstract:string;
-    relevance:number;
-    onRequestFull?: () => void;
-    onInternship?: () => void;
+  artifact: Artifact;
+  relevance?: number; // доля 0..1 из дайджеста; если не задана — шкалу не показываем
+  onRequestFullText: (artifactId: number) => void;
+  onInternship: (artifactId: number) => void;
+  onSaveFavorite: (title: string) => void;
 }
 
-export default function ArtifactCard({
-    title,
-    authors,
-    abstract,
-    relevance,
-    onRequestFull,
-    onInternship
-}:ArtifactCardProps) {
+const formatType = (type: string) => {
+  if (type === 'vkr') return 'ВКР';
+  if (type === 'article') return 'Статья';
+  if (type === 'talk') return 'Доклад';
+  return type;
+};
 
-    const clampedRelevance =
-        Math.min(
-            100,
-            Math.max(
-                0,
-                relevance
-            )
-        );
+const getYear = (createdAt: string) => new Date(createdAt).getFullYear();
 
-    return (
-        <Card>
-            <Title level={4}>
-                {title}
-            </Title>
+const ArtifactCard: React.FC<ArtifactCardProps> = ({
+  artifact,
+  relevance,
+  onRequestFullText,
+  onInternship,
+  onSaveFavorite,
+}) => {
+  // relevance приходит из дайджеста как доля 0..1 (индекс Жаккара) — переводим в проценты.
+  const relevancePercent = relevance !== undefined ? Math.round(relevance * 100) : undefined;
 
-            <Text type="secondary">
-                {
-                    authors.length > 0
-                        ? authors.join(", ")
-                        : "Автор не указан"
-                }
-            </Text>
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <Title level={5}>{artifact.title}</Title>
+      <div style={{ marginBottom: 8 }}>
+        <Text type="secondary">{artifact.author_name || 'Автор не указан'}</Text>
+        <Text type="secondary" style={{ marginLeft: 16 }}>{getYear(artifact.created_at)}</Text>
+        <Tag color="#00AEEF" style={{ marginLeft: 16 }}>{formatType(artifact.type)}</Tag>
+      </div>
 
-            <Paragraph>
-                {abstract}
-            </Paragraph>
+      {relevancePercent !== undefined && (
+        <div style={{ marginBottom: 12, maxWidth: 260 }}>
+          <Text strong style={{ fontSize: 12 }}>Релевантность</Text>
+          <Progress
+            percent={relevancePercent}
+            size="small"
+            strokeColor="#00AEEF"
+            status={relevancePercent >= 80 ? 'success' : 'active'}
+          />
+        </div>
+      )}
 
-            <div>
-                <Text strong>
-                    Релевантность
-                </Text>
+      <div style={{ marginBottom: 12 }}>
+        {artifact.tags.map(tag => (
+          <Tag key={tag.id} color="#e6f0fa" style={{ color: '#1a2a3a' }}>{tag.name}</Tag>
+        ))}
+      </div>
 
-                <Progress
-                    percent={
-                        clampedRelevance
-                    }
-                    status={
-                        clampedRelevance >= 80
-                            ? "success"
-                            : "active"
-                    }
-                />
-            </div>
+      <Paragraph ellipsis={{ rows: 3 }}>{artifact.annotation}</Paragraph>
 
-            <Space>
-                {
-                    onRequestFull && (
-                        <Button
-                            type="primary"
-                            onClick={
-                                onRequestFull
-                            }
-                        >
-                            Запросить полный текст
-                        </Button>
-                    )
-                }
+      <Space>
+        <Button
+          type="primary"
+          style={{ background: '#00AEEF' }}
+          onClick={() => onRequestFullText(artifact.id)}
+        >
+          📩 Запросить полный текст
+        </Button>
+        <Button onClick={() => onSaveFavorite(artifact.title)}>
+          ⭐ Сохранить в избранное
+        </Button>
+        <Button onClick={() => onInternship(artifact.id)}>
+          💼 Пригласить на стажировку
+        </Button>
+      </Space>
+    </Card>
+  );
+};
 
-                {
-                    onInternship && (
-                        <Button
-                            onClick={
-                                onInternship
-                            }
-                        >
-                            Пригласить на стажировку
-                        </Button>
-                    )
-                }
-            </Space>
-        </Card>
-    );
-}
+export default ArtifactCard;

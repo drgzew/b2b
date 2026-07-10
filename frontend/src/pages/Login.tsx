@@ -42,7 +42,9 @@ export default function Login(){
                 navigate("/participant/my-artifacts");
                 return;
             }
-
+            // Если роль неизвестна — редирект на логин с ошибкой
+            message.error("Неизвестная роль пользователя. Обратитесь к администратору.");
+            navigate("/login");
         }catch(error){
 
             message.error(
