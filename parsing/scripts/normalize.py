@@ -59,7 +59,7 @@ def normalize_work(work: Dict, index: int) -> Dict:
         # "file_path": None,  # path to PDF file
         "curator_status": "draft",  # draft by default
         "access_level": access_level,
-        "author_name": ", ".join(work.get('authors', [])) if work.get('authors') else None,
+        "author_name": ", ".join(work.get('utmn_authors', [])) if work.get('utmn_authors') else None,
         "created_at": datetime.utcnow().isoformat(),
         "embedding": None,  # fill it later
         "tags": [{"name": tag} for tag in normalized_keywords],  # tags based off keywords

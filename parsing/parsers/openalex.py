@@ -122,6 +122,11 @@ def dump_works(works, keywords, output_path):
         {
             "title": work.title,
             "authors": [authorship.author.display_name for authorship in work.authorships],
+            "utmn_authors": [
+                authorship.author.display_name
+                for authorship in work.authorships
+                if any(map(lambda i: i.display_name == "University of Tyumen", authorship.institutions))
+            ],
             "year": work.publication_year,
             "abstract": unpack_abstract(work.abstract_inverted_index),
             "doi": work.doi,
@@ -258,7 +263,7 @@ def text_preprocess(text):
     sentences = sent_tokenize(text)
     words = []
 
-    stop_words = set(stopwords.words('english'))
+    stop_words = set(stopwords.words('english') + stopwords.words('russian'))
 
     # stopwords specific for articles
     stop_words.update([
