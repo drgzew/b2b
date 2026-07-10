@@ -1,18 +1,39 @@
 import { Table, Tag, Button, message } from "antd";
 import { useEffect, useState } from "react";
 import { apiClient } from "../../api/client";
+import { updateCuratorStats } from "../../api/events";
 import type { ArtifactRequest, RequestStatus } from "../../api/types";
 
 export default function Requests() {
     const [requests, setRequests] = useState<ArtifactRequest[]>([]);
     const [loading, setLoading] = useState(false);
-    useEffect(() => { loadRequests(); }, []);
+    useEffect(() => {
+        loadRequests(true);
+        const interval = setInterval(() => {
+            loadRequests(false);
+        }, 10000);
 
-    async function loadRequests() {
+
+        return () => {
+            clearInterval(interval);
+        };
+
+
+    }, []);
+
+    async function loadRequests(showLoader = true) {
         try {
-            setLoading(true);
+            if (showLoader) {
+                setLoading(true);
+            }
             const response = await apiClient.get("/curator/requests");
-            setRequests(response.data);
+            setRequests(
+                response.data.sort(
+                    (a: ArtifactRequest, b: ArtifactRequest) =>
+                        new Date(b.created_at).getTime() -
+                        new Date(a.created_at).getTime()
+                )
+            )
         } catch {
             message.error(
                 "Не удалось загрузить запросы"
@@ -28,6 +49,10 @@ export default function Requests() {
     ) {
         try {
             await apiClient.patch(`/curator/requests/${id}`, { status });
+
+            await loadRequests(false);
+
+            updateCuratorStats();
 
             setRequests(prev =>
                 prev.map(item =>
@@ -52,10 +77,9 @@ export default function Requests() {
                 );
             }
 
-        } catch {
-            message.error(
-                "Ошибка обновления запроса"
-            );
+        } catch (error) {
+            console.error(error);
+            message.error("Ошибка обновления запроса");
         }
     }
 

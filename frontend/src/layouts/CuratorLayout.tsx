@@ -2,7 +2,6 @@ import { Layout } from "antd";
 import Header from "../components/Header";
 import { useEffect, useState } from "react";
 import { getCuratorStats } from "../api/curator";
-import { useLocation } from "react-router-dom";
 
 interface CuratorLayoutProps { children: React.ReactNode; }
 const { Content } = Layout;
@@ -16,18 +15,49 @@ export default function CuratorLayout({
         requests: 0
     });
 
-
-    const location = useLocation();
-    useEffect(() => { loadStats(); }, [location.pathname]);
     async function loadStats() {
+
         try {
             const data =
                 await getCuratorStats();
+
             setStats(data);
         } catch {
-            console.log("Ошибка загрузки статистики");
+            console.log(
+                "Ошибка загрузки статистики"
+            );
         }
     }
+
+    useEffect(() => {
+        loadStats();
+
+        // обновление после действий куратора
+        window.addEventListener(
+            "curatorStatsUpdate",
+            loadStats
+        );
+
+        // автообновление новых запросов
+        const interval = setInterval(
+            () => {
+                loadStats();
+            },
+            10000
+        );
+
+        return () => {
+
+            window.removeEventListener(
+                "curatorStatsUpdate",
+                loadStats
+            );
+
+            clearInterval(
+                interval
+            );
+        };
+    }, []);
 
     return (
         <Layout>
@@ -39,10 +69,6 @@ export default function CuratorLayout({
                         path: "/curator/queue",
                         badge: stats.draft
                     },
-                    // {
-                    //     label:"Артефакты",
-                    //     path:"/curator/artifacts"
-                    // },
                     {
                         label: "Запросы",
                         path: "/curator/requests",

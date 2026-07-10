@@ -82,6 +82,21 @@ def update_artifact_tags(
     session.refresh(artifact)
     return to_artifact_read(artifact)
 
+def to_request_read(req: RequestModel) -> RequestRead:
+    return RequestRead(
+        id=req.id,
+        artifact=ArtifactShortRead(
+            id=req.artifact.id,
+            title=req.artifact.title,
+        ),
+        partner=PartnerShortRead(
+            id=req.partner.id,
+            name=req.partner.name,
+        ),
+        type=req.type,
+        status=req.status,
+        created_at=req.created_at,
+    )
 
 @router.get("/requests", response_model=List[RequestRead])
 def list_requests(
@@ -89,23 +104,9 @@ def list_requests(
     session: Session = Depends(get_session),
 ):
     requests = session.exec(select(RequestModel)).all()
-    result = []
-    for r in requests:
-        result.append(RequestRead(id=r.id,
-                artifact=ArtifactShortRead(
-                    id=r.artifact.id,
-                    title=r.artifact.title
-                ),
-                partner=PartnerShortRead(
-                    id=r.partner.id,
-                    name=r.partner.name
-                ),
-                type=r.type,
-                status=r.status,
-                created_at=r.created_at
-            )
-        )
-    return result
+
+    return [to_request_read(req) for req in requests]
+
 
 @router.patch("/requests/{request_id}", response_model=RequestRead)
 def update_request_status(
@@ -115,13 +116,20 @@ def update_request_status(
     session: Session = Depends(get_session),
 ):
     req = session.get(RequestModel, request_id)
+
     if not req:
-        raise HTTPException(status_code=404, detail="Request not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Request not found"
+        )
+
     req.status = data.status
+
     session.add(req)
     session.commit()
     session.refresh(req)
-    return RequestRead(**req.dict())
+
+    return to_request_read(req)
 
 @router.get("/artifacts/{artifact_id}", response_model=ArtifactRead)
 def get_artifact(
