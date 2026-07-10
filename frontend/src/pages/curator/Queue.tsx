@@ -151,7 +151,7 @@ export default function Queue() {
 
     return (
         <div className="page-container">
-            <h1 style={{marginBottom: 24}}>
+            <h1 style={{ marginBottom: 24 }}>
                 Управление публикациями
             </h1>
 
@@ -176,12 +176,12 @@ export default function Queue() {
                         value: "rejected"
                     }
                 ]}
-                style={{marginBottom: 24}}
+                style={{ marginBottom: 24 }}
             />
 
             <Row
                 gutter={16}
-                style={{marginBottom: 24}}
+                style={{ marginBottom: 24 }}
             >
                 <Col span={6}>
                     <Card title="Всего" size="small">
@@ -198,7 +198,7 @@ export default function Queue() {
 
             <Row
                 gutter={16}
-                style={{marginBottom: 24}}
+                style={{ marginBottom: 24 }}
             >
                 <Col span={5}>
                     <Input
@@ -210,7 +210,7 @@ export default function Queue() {
                 <Col span={5}>
                     <Input
                         placeholder="Автор"
-                        onChange={e =>setAuthorSearch(e.target.value)
+                        onChange={e => setAuthorSearch(e.target.value)
                         }
                     />
                 </Col>
@@ -219,7 +219,7 @@ export default function Queue() {
                     <Select
                         allowClear
                         placeholder="Год"
-                        style={{width: "100%"}}
+                        style={{ width: "100%" }}
                         onChange={setYearFilter}
                         options={[
                             ...new Set(
@@ -240,8 +240,8 @@ export default function Queue() {
                     <Select
                         allowClear
                         placeholder="Тип"
-                        style={{width: "100%"}}
-                        onChange={value =>setTypeFilter(value || "")}
+                        style={{ width: "100%" }}
+                        onChange={value => setTypeFilter(value || "")}
                         options={[
                             {
                                 label: "ВКР",
@@ -269,7 +269,7 @@ export default function Queue() {
                         allowClear
                         showSearch
                         placeholder="Теги"
-                        style={{width: "100%"}}
+                        style={{ width: "100%" }}
                         value={tagFilter}
                         onChange={setTagFilter}
                         optionFilterProp="label"
@@ -292,7 +292,10 @@ export default function Queue() {
                 loading={loading}
                 columns={columns}
                 dataSource={filteredArtifacts}
-                pagination={{pageSize: 10}}
+                pagination={{
+                    pageSize: 10,
+                    showTotal: (total, range) =>`${range[0]}-${range[1]} из ${total}`
+                }}
             />
         </div>
     );

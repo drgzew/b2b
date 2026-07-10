@@ -2,8 +2,9 @@ import { Layout } from "antd";
 import Header from "../components/Header";
 import { useEffect, useState } from "react";
 import { getCuratorStats } from "../api/curator";
+import { useLocation } from "react-router-dom";
 
-interface CuratorLayoutProps {children: React.ReactNode;}
+interface CuratorLayoutProps { children: React.ReactNode; }
 const { Content } = Layout;
 
 export default function CuratorLayout({
@@ -15,8 +16,9 @@ export default function CuratorLayout({
         requests: 0
     });
 
-    useEffect(() => {loadStats()}, []);
 
+    const location = useLocation();
+    useEffect(() => { loadStats(); }, [location.pathname]);
     async function loadStats() {
         try {
             const data =
