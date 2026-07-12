@@ -8,8 +8,20 @@ from .db import get_session, init_db
 from .models import Artifact, Tag
 from .routers import admin, auth, authors, curator, partner
 from .schemas import ArtifactCreate, ArtifactRead
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Подписка на университет — API")
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(partner.router)
