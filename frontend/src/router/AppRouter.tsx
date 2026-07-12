@@ -7,6 +7,8 @@ import Requests from "../pages/curator/Requests";
 import MyArtifacts from "../pages/participant/MyArtifacts";
 import PartnerDashboard from "../pages/partner/PartnerDashboard";
 import PartnerDigest from "../pages/partner/PartnerDigest";
+import PartnerInternships from '../pages/partner/PartnerInternships';
+import PartnerFavorites from '../pages/partner/PartnerFavorites';
 
 export default function AppRouter() {
     return (
@@ -26,6 +28,11 @@ export default function AppRouter() {
             <Route path="/partner/dashboard" element={<RoleLayout><PartnerDashboard /></RoleLayout>} />
             <Route path="/partner/digest" element={<RoleLayout><PartnerDigest /></RoleLayout>} />
             <Route path="/partner/digest/:topicId" element={<RoleLayout><PartnerDigest /></RoleLayout>} />
+            <Route path="/partner/internships" element={<RoleLayout><PartnerInternships /></RoleLayout>} />
+            <Route path="/partner/favorites" element={<RoleLayout><PartnerFavorites /></RoleLayout>} />
         </Routes>
     );
 }
+
+
+

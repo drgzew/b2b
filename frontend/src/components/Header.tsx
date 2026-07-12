@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface HeaderItem {
-  label: string;
+  label: string | React.ReactNode;
   path: string;
 }
 

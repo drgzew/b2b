@@ -16,6 +16,7 @@ const formatType = (type: string) => {
   if (type === 'vkr') return 'ВКР';
   if (type === 'article') return 'Статья';
   if (type === 'talk') return 'Доклад';
+  if (type === 'event') return 'Событие';
   return type;
 };
 

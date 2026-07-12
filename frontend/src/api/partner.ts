@@ -31,6 +31,23 @@ export interface DigestEntry {
   relevance: number;
 }
 
+export interface InternshipRequest {
+  id: number;
+  artifact_id: number;
+  artifact: Artifact;
+  status: 'sent' | 'accepted' | 'in_progress' | 'rejected' | 'completed';
+  created_at: string;
+  student_name?: string;
+  response_date?: string;
+}
+
+export interface FavoriteArtifact {
+  id: number;
+  artifact_id: number;
+  artifact: Artifact;
+  added_at: string;
+}
+
 export const partnerAPI = {
   getMe: () => apiClient.get<Partner>('/partner/me'),
   // GET /partner/subscriptions
@@ -47,4 +64,22 @@ export const partnerAPI = {
   // PUT /partner/subscriptions — заменить весь набор подписок партнёра
   replaceSubscriptions: (data: { subscriptions: { name: string; tags: string[] }[] }) =>
     apiClient.put<Subscription[]>('/partner/subscriptions', data),
+
+  // GET /partner/internships — получить все приглашения на стажировку
+  getInternships: () => apiClient.get<InternshipRequest[]>('/partner/internships'),
+
+  // PATCH /partner/internships/{id}/status — обновить статус стажировки
+  updateInternshipStatus: (internshipId: number, status: string) =>
+    apiClient.patch<InternshipRequest>(`/partner/internships/${internshipId}/status`, { status }),
+
+  // GET /partner/favorites — получить все избранные артефакты
+  getFavorites: () => apiClient.get<FavoriteArtifact[]>('/partner/favorites'),
+
+  // POST /partner/favorites — добавить артефакт в избранное
+  addFavorite: (artifactId: number) =>
+    apiClient.post('/partner/favorites', { artifact_id: artifactId }),
+
+  // DELETE /partner/favorites/{id} — удалить из избранного
+  removeFavorite: (favoriteId: number) =>
+    apiClient.delete(`/partner/favorites/${favoriteId}`),
 };
