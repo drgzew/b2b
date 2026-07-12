@@ -10,6 +10,7 @@ from .db import get_session, init_db
 from .models import Artifact, Tag
 from .routers import admin, auth, authors, curator, partner
 from .schemas import ArtifactCreate, ArtifactRead
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Подписка на университет — API")
 
