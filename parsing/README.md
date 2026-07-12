@@ -23,6 +23,15 @@ python -m parsers.openalex
 - `parsing/docs/taxonomy.md` - Описание таксономии OpenAlex в формате Markdown;
 - `parsing/docs/taxonomy.json` - Описание таксономии OpenAlex в формате JSON.
 
+## Парсинг ВКР из библиотеки ТюмГУ
+
+```cmd
+cd parsing
+python -m parsers.libtheses
+```
+
+Ничего не создастся, так как сайт библиотеки приказал долго жить.
+
 ## Нормализация публикаций к формату артефакта
 
 ```cmd
@@ -60,6 +69,11 @@ python -m parsing.scripts.import --wipe --file parsing/data/normalized.json
 exit
 docker cp b2b-backend-1:/data/data-report.md parsing/
 docker compose exec backend python scripts/seed.py
+```
+
+Проверка функционала:
+
+```cmd
 curl http://localhost:8000/artifacts
 curl http://localhost:8000/artifacts/1
 curl http://localhost:8000/tags
