@@ -1,11 +1,12 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, requests
-from sqlmodel import Session, select, func
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlmodel import Session, select
+
 from ..converters import to_artifact_read
 from ..db import get_session
 from ..models import Artifact, Request as RequestModel, Tag, User
-from ..schemas import ArtifactRead, ArtifactShortRead, PartnerShortRead, RequestRead, RequestStatusUpdate, TagsUpdate
+from ..schemas import ArtifactRead, RequestRead, RequestStatusUpdate, TagsUpdate
 from ..security import require_role
 
 router = APIRouter(prefix="/curator", tags=["curator"])
@@ -16,7 +17,7 @@ def list_artifacts_for_curator(
     status: Optional[str] = Query(
         default=None, description="Фильтр по curator_status: draft | approved | rejected"
     ),
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     query = select(Artifact)
@@ -36,7 +37,7 @@ def _get_artifact_or_404(artifact_id: int, session: Session) -> Artifact:
 @router.post("/artifacts/{artifact_id}/approve", response_model=ArtifactRead)
 def approve_artifact(
     artifact_id: int,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
@@ -50,7 +51,7 @@ def approve_artifact(
 @router.post("/artifacts/{artifact_id}/reject", response_model=ArtifactRead)
 def reject_artifact(
     artifact_id: int,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
@@ -65,7 +66,7 @@ def reject_artifact(
 def update_artifact_tags(
     artifact_id: int,
     data: TagsUpdate,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
@@ -82,76 +83,28 @@ def update_artifact_tags(
     session.refresh(artifact)
     return to_artifact_read(artifact)
 
-def to_request_read(req: RequestModel) -> RequestRead:
-    return RequestRead(
-        id=req.id,
-        artifact=ArtifactShortRead(
-            id=req.artifact.id,
-            title=req.artifact.title,
-        ),
-        partner=PartnerShortRead(
-            id=req.partner.id,
-            name=req.partner.name,
-        ),
-        type=req.type,
-        status=req.status,
-        created_at=req.created_at,
-    )
 
 @router.get("/requests", response_model=List[RequestRead])
 def list_requests(
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     requests = session.exec(select(RequestModel)).all()
-
-    return [to_request_read(req) for req in requests]
+    return [RequestRead(**r.dict()) for r in requests]
 
 
 @router.patch("/requests/{request_id}", response_model=RequestRead)
 def update_request_status(
     request_id: int,
     data: RequestStatusUpdate,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     req = session.get(RequestModel, request_id)
-
     if not req:
-        raise HTTPException(
-            status_code=404,
-            detail="Request not found"
-        )
-
+        raise HTTPException(status_code=404, detail="Request not found")
     req.status = data.status
-
     session.add(req)
     session.commit()
     session.refresh(req)
-
-    return to_request_read(req)
-
-@router.get("/artifacts/{artifact_id}", response_model=ArtifactRead)
-def get_artifact(
-    artifact_id: int,
-    user: User = Depends(require_role("curator")),
-    session: Session = Depends(get_session),
-):
-    artifact = _get_artifact_or_404(artifact_id, session)
-    return to_artifact_read(artifact)
-
-
-@router.get("/stats")
-def curator_stats(
-    user: User = Depends(require_role("curator")),
-    session: Session = Depends(get_session),
-):
-    draft_count = session.exec(
-        select(func.count())
-        .select_from(Artifact)
-        .where(Artifact.curator_status == "draft")).one()
-    requests_count = session.exec(
-        select(func.count())
-        .select_from(RequestModel)
-        .where(RequestModel.status == "sent")).one()
-    return {"draft": draft_count, "requests": requests_count}
+    return RequestRead(**req.dict())
