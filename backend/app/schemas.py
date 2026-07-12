@@ -118,6 +118,41 @@ class RequestRead(SQLModel):
     created_at: datetime
 
 
+# --- Стажировки и избранное (кабинет партнёра) ---
+
+class InternshipRead(SQLModel):
+    id: int
+    artifact_id: int
+    partner_id: int
+    status: str  # sent | accepted | in_progress | rejected | completed
+    student_name: str
+    created_at: datetime
+    response_date: Optional[datetime]
+
+
+class InternshipStatusUpdate(SQLModel):
+    status: str  # sent | accepted | in_progress | rejected | completed
+
+
+class InternshipCreate(SQLModel):
+    artifact_id: int
+    # Если не передан явно — берётся из профиля автора артефакта
+    # (artifact.author.full_name). Нужен как fallback на случай,
+    # если у артефакта почему-то нет привязанного author_id.
+    student_name: Optional[str] = None
+
+
+class FavoriteRead(SQLModel):
+    id: int
+    artifact_id: int
+    partner_id: int
+    added_at: datetime
+
+
+class FavoriteCreate(SQLModel):
+    artifact_id: int
+
+
 # --- Куратор ---
 
 class TagsUpdate(SQLModel):
@@ -147,3 +182,4 @@ class UserCreate(SQLModel):
 class PartnerCreate(SQLModel):
     name: str
     contact_email: str
+    

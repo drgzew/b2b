@@ -96,6 +96,8 @@ class Artifact(SQLModel, table=True):
     tags: List[Tag] = Relationship(back_populates="artifacts", link_model=ArtifactTag)
     requests: List["Request"] = Relationship(back_populates="artifact")
     author: Optional[Author] = Relationship(back_populates="artifacts")
+    internships: List["Internship"] = Relationship(back_populates="artifact")
+    favorites: List["Favorite"] = Relationship(back_populates="artifact")
 
 
 class Partner(SQLModel, table=True):
@@ -106,6 +108,8 @@ class Partner(SQLModel, table=True):
     subscriptions: List["Subscription"] = Relationship(back_populates="partner")
     requests: List["Request"] = Relationship(back_populates="partner")
     users: List["User"] = Relationship(back_populates="partner")
+    internships: List["Internship"] = Relationship(back_populates="partner")
+    favorites: List["Favorite"] = Relationship(back_populates="partner")
 
 
 class Subscription(SQLModel, table=True):
@@ -144,6 +148,38 @@ class Request(SQLModel, table=True):
 
     artifact: Optional[Artifact] = Relationship(back_populates="requests")
     partner: Optional[Partner] = Relationship(back_populates="requests")
+
+
+class Internship(SQLModel, table=True):
+    """Приглашение партнёра на стажировку по конкретной работе/автору.
+
+    student_name хранится "снимком" на момент приглашения (а не читается
+    каждый раз через artifact.author.full_name) — если профиль автора потом
+    поменяется или будет удалён, история приглашений останется читаемой.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    artifact_id: int = Field(foreign_key="artifact.id")
+    partner_id: int = Field(foreign_key="partner.id")
+    status: str = Field(default="sent")  # sent | accepted | in_progress | rejected | completed
+    student_name: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    response_date: Optional[datetime] = None
+
+    artifact: Optional[Artifact] = Relationship(back_populates="internships")
+    partner: Optional[Partner] = Relationship(back_populates="internships")
+
+
+class Favorite(SQLModel, table=True):
+    """Артефакт, добавленный партнёром в избранное."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    artifact_id: int = Field(foreign_key="artifact.id")
+    partner_id: int = Field(foreign_key="partner.id")
+    added_at: datetime = Field(default_factory=datetime.utcnow)
+
+    artifact: Optional[Artifact] = Relationship(back_populates="favorites")
+    partner: Optional[Partner] = Relationship(back_populates="favorites")
 
 
 class User(SQLModel, table=True):
