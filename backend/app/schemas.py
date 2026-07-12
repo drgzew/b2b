@@ -57,6 +57,11 @@ class ArtifactCreate(SQLModel):
     tags: List[str] = []  # имена тегов; несуществующие теги будут созданы
 
 
+class TagRead(SQLModel):
+    id: int
+    name: str
+
+
 class ArtifactRead(SQLModel):
     id: int
     title: str
@@ -99,6 +104,19 @@ class SubscriptionRead(SQLModel):
     tags: List[str]
 
 
+class SubscriptionWrite(SQLModel):
+    """Одна тема из набора, который партнёр выбирает в «Управлении подписками»."""
+
+    name: str
+    tags: List[str] = []  # имена тегов темы
+
+
+class SubscriptionsUpdate(SQLModel):
+    """Полный набор подписок партнёра — заменяет предыдущий целиком."""
+
+    subscriptions: List[SubscriptionWrite]
+
+
 class DigestEntry(SQLModel):
     artifact: ArtifactRead
     relevance: float
@@ -107,6 +125,16 @@ class DigestEntry(SQLModel):
 class RequestCreate(SQLModel):
     artifact_id: int
     type: str  # full_text | internship | rnd
+
+
+class ArtifactShortRead(SQLModel):
+    id: int
+    title: str
+
+
+class PartnerShortRead(SQLModel):
+    id: int
+    name: str
 
 
 class RequestRead(SQLModel):
