@@ -1,6 +1,8 @@
+import os
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
 from .converters import to_artifact_read
@@ -10,6 +12,26 @@ from .routers import admin, author, authors, auth, curator, partner, teachers
 from .schemas import ArtifactCreate, ArtifactRead
 
 app = FastAPI(title="Подписка на университет — API")
+
+# Без этого браузер блокирует запросы с фронтенда, если он крутится на другом
+# origin (другой домен/порт), даже если бэкенд отвечает 200 — запрос не дойдёт
+# до кода ручки, упадёт на preflight OPTIONS. Список origin'ов берём из
+# переменной окружения (через запятую), чтобы не хардкодить прод/дев адреса.
+# Дефолт покрывает типичные локальные фронтенды (Vite/CRA) для разработки.
+_default_origins = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(partner.router)

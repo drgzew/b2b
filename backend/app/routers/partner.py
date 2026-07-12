@@ -4,6 +4,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from ..access import has_read_access
 from ..converters import to_artifact_read
 from ..db import get_session
 from ..matching import match_by_tags
@@ -24,11 +25,13 @@ from ..schemas import (
     InternshipRead,
     InternshipStatusUpdate,
     PartnerRead,
+    ReadAccessResponse,
     RequestCreate,
     RequestRead,
     SubscriptionRead,
 )
 from ..security import require_role
+from ..workflows import can_transition
 
 router = APIRouter(prefix="/partner", tags=["partner"])
 
@@ -91,11 +94,41 @@ def get_digest(
         relevance = match_by_tags(subscription_tags, artifact_tags)
         if relevance > 0:
             entries.append(
-                DigestEntry(artifact=to_artifact_read(artifact), relevance=round(relevance, 4))
+                DigestEntry(
+                    artifact=to_artifact_read(artifact),
+                    relevance=round(relevance, 4),
+                    can_read=has_read_access(session, artifact, partner.id),
+                )
             )
 
     entries.sort(key=lambda e: e.relevance, reverse=True)
     return entries
+
+
+@router.get("/artifacts/{artifact_id}/read", response_model=ReadAccessResponse)
+def read_artifact(
+    artifact_id: int,
+    user: User = Depends(require_role("partner")),
+    session: Session = Depends(get_session),
+):
+    """Кнопка 'Запросить полный текст' в состоянии 'уже доступно': сразу
+    отдаёт, куда вести партнёра — переход по ссылке для ВКР, открытие PDF
+    для статьи/доклада (см. ReadAccessResponse). Если доступа ещё нет —
+    403 с явной подсказкой создать запрос через POST /requests."""
+    partner = _get_partner_or_404(user, session)
+
+    artifact = session.get(Artifact, artifact_id)
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+
+    if not has_read_access(session, artifact, partner.id):
+        raise HTTPException(
+            status_code=403,
+            detail="Full text is not available yet. Submit a request via POST /partner/requests.",
+        )
+
+    mode = "redirect" if artifact.type == "vkr" else "pdf"
+    return ReadAccessResponse(mode=mode, url=artifact.file_path)
 
 
 @router.post("/requests", response_model=RequestRead)
@@ -110,6 +143,14 @@ def create_request(
     if not artifact:
         raise HTTPException(status_code=404, detail="Artifact not found")
 
+    if data.type == "full_text" and has_read_access(session, artifact, partner.id):
+        # Не создаём запрос, если читать уже можно — тогда правильный путь
+        # для фронта GET /artifacts/{id}/read, а не ждать чьего-то решения.
+        raise HTTPException(
+            status_code=400,
+            detail="Full text is already accessible, use GET /partner/artifacts/{id}/read",
+        )
+
     req = RequestModel(artifact_id=data.artifact_id, partner_id=partner.id, type=data.type)
     session.add(req)
     session.commit()
@@ -119,17 +160,11 @@ def create_request(
 
 # --- Стажировки ---
 
-_INTERNSHIP_STATUSES = {"sent", "accepted", "in_progress", "rejected", "completed"}
-
-
-def _get_own_internship_or_404(internship_id: int, partner: Partner, session: Session) -> Internship:
-    internship = session.get(Internship, internship_id)
-    # Проверяем принадлежность партнёру, а не только существование записи —
-    # тот же принцип, что и в get_digest: партнёр не должен читать/менять
-    # чужие стажировки, просто подставив чужой id.
-    if not internship or internship.partner_id != partner.id:
-        raise HTTPException(status_code=404, detail="Internship not found")
-    return internship
+def _to_internship_read(internship: Internship) -> InternshipRead:
+    return InternshipRead(
+        **internship.dict(),
+        artifact_title=internship.artifact.title if internship.artifact else None,
+    )
 
 
 @router.get("/internships", response_model=List[InternshipRead])
@@ -138,10 +173,7 @@ def list_internships(
     session: Session = Depends(get_session),
 ):
     partner = _get_partner_or_404(user, session)
-    internships = session.exec(
-        select(Internship).where(Internship.partner_id == partner.id)
-    ).all()
-    return [InternshipRead(**i.dict()) for i in internships]
+    return [_to_internship_read(i) for i in partner.internships]
 
 
 @router.post("/internships", response_model=InternshipRead)
@@ -150,30 +182,27 @@ def create_internship(
     user: User = Depends(require_role("partner")),
     session: Session = Depends(get_session),
 ):
+    """Партнёр приглашает автора конкретного артефакта на стажировку.
+
+    Не было в исходном ТЗ (там было только 5 эндпоинтов без создания) —
+    добавлено по уточнению, иначе список стажировок нечем было бы наполнить
+    кроме как вручную в БД.
+    """
     partner = _get_partner_or_404(user, session)
 
     artifact = session.get(Artifact, data.artifact_id)
     if not artifact:
         raise HTTPException(status_code=404, detail="Artifact not found")
 
-    student_name = data.student_name
-    if not student_name:
-        if not artifact.author:
-            raise HTTPException(
-                status_code=400,
-                detail="student_name is required: artifact has no linked author",
-            )
-        student_name = artifact.author.full_name
-
     internship = Internship(
         artifact_id=data.artifact_id,
         partner_id=partner.id,
-        student_name=student_name,
+        student_name=data.student_name,
     )
     session.add(internship)
     session.commit()
     session.refresh(internship)
-    return InternshipRead(**internship.dict())
+    return _to_internship_read(internship)
 
 
 @router.patch("/internships/{internship_id}/status", response_model=InternshipRead)
@@ -183,31 +212,29 @@ def update_internship_status(
     user: User = Depends(require_role("partner")),
     session: Session = Depends(get_session),
 ):
-    if data.status not in _INTERNSHIP_STATUSES:
+    partner = _get_partner_or_404(user, session)
+
+    internship = session.get(Internship, internship_id)
+    # Тот же принцип, что и у Subscription/digest: чужая запись — 404, не 403,
+    # чтобы не подтверждать сам факт её существования.
+    if not internship or internship.partner_id != partner.id:
+        raise HTTPException(status_code=404, detail="Internship not found")
+
+    if not can_transition(internship.status, data.status):
         raise HTTPException(
             status_code=400,
-            detail=f"status must be one of {sorted(_INTERNSHIP_STATUSES)}",
+            detail=f"Cannot transition internship from '{internship.status}' to '{data.status}'",
         )
-
-    partner = _get_partner_or_404(user, session)
-    internship = _get_own_internship_or_404(internship_id, partner, session)
 
     internship.status = data.status
     internship.response_date = datetime.utcnow()
     session.add(internship)
     session.commit()
     session.refresh(internship)
-    return InternshipRead(**internship.dict())
+    return _to_internship_read(internship)
 
 
 # --- Избранное ---
-
-def _get_own_favorite_or_404(favorite_id: int, partner: Partner, session: Session) -> Favorite:
-    favorite = session.get(Favorite, favorite_id)
-    if not favorite or favorite.partner_id != partner.id:
-        raise HTTPException(status_code=404, detail="Favorite not found")
-    return favorite
-
 
 @router.get("/favorites", response_model=List[FavoriteRead])
 def list_favorites(
@@ -215,10 +242,10 @@ def list_favorites(
     session: Session = Depends(get_session),
 ):
     partner = _get_partner_or_404(user, session)
-    favorites = session.exec(
-        select(Favorite).where(Favorite.partner_id == partner.id)
-    ).all()
-    return [FavoriteRead(**f.dict()) for f in favorites]
+    return [
+        FavoriteRead(**f.dict(), artifact=to_artifact_read(f.artifact))
+        for f in partner.favorites
+    ]
 
 
 @router.post("/favorites", response_model=FavoriteRead)
@@ -235,18 +262,23 @@ def add_favorite(
 
     existing = session.exec(
         select(Favorite).where(
-            Favorite.partner_id == partner.id,
-            Favorite.artifact_id == data.artifact_id,
+            Favorite.partner_id == partner.id, Favorite.artifact_id == data.artifact_id
         )
     ).first()
     if existing:
-        raise HTTPException(status_code=409, detail="Artifact already in favorites")
+        # Идемпотентно: повторное добавление того же артефакта не создаёт дубль,
+        # просто возвращает уже существующую запись.
+        return FavoriteRead(**existing.dict(), artifact=to_artifact_read(artifact))
 
     favorite = Favorite(artifact_id=data.artifact_id, partner_id=partner.id)
     session.add(favorite)
     session.commit()
     session.refresh(favorite)
-    return FavoriteRead(**favorite.dict())
+    # commit() выше "протухает" все объекты сессии, включая уже загруженный
+    # artifact — без refresh() его .dict() внутри to_artifact_read() тихо
+    # вернёт пустой словарь вместо реальных полей (поймано на тестах).
+    session.refresh(artifact)
+    return FavoriteRead(**favorite.dict(), artifact=to_artifact_read(artifact))
 
 
 @router.delete("/favorites/{favorite_id}", status_code=204)
@@ -256,7 +288,10 @@ def remove_favorite(
     session: Session = Depends(get_session),
 ):
     partner = _get_partner_or_404(user, session)
-    favorite = _get_own_favorite_or_404(favorite_id, partner, session)
+
+    favorite = session.get(Favorite, favorite_id)
+    if not favorite or favorite.partner_id != partner.id:
+        raise HTTPException(status_code=404, detail="Favorite not found")
 
     session.delete(favorite)
     session.commit()

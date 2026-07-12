@@ -49,24 +49,30 @@ curl http://localhost:8000/health
 docker compose exec backend python scripts/seed.py
 ```
 
-Создаст 5 артефактов, 2 партнёров (ГПН, СИБУР) с подписками и 3 пользователей для входа:
+Создаст 5 артефактов, 5 авторов (профили сгенерированы через мок "входа по почте ТюмГУ", см. `app/sso.py`), 1 преподавателя, 2 партнёров (ГПН, СИБУР) с подписками и 6 пользователей для входа:
 
 | Email | Пароль | Роль |
 |---|---|---|
 | gpn@demo.ru | pass123 | partner (Газпромнефть) |
 | sibur@demo.ru | pass123 | partner (СИБУР) |
 | curator@demo.ru | pass123 | curator |
+| admin@demo.ru | pass123 | admin |
+| petrov.i@study.utmn.ru | pass123 | author (есть входящий запрос на полный текст — можно сразу разрешить/отклонить) |
+| smirnova.a@study.utmn.ru | pass123 | author (его работа уже открыта всем, read_policy=open) |
 
 ## Эндпоинты
 
-Полный контракт с примерами запросов/ответов — в [`docs/api-contract.md`](./docs/api-contract.md).
+Полный контракт с примерами запросов/ответов — в [`docs/api-contract.md`](./docs/api-contract.md). Там же ⚠️ **breaking change**: поле артефакта `access_level` переименовано в `read_policy` (`open | requires_approval`, дефолт `requires_approval`).
 
 Коротко:
 - `GET /health` — healthcheck
 - `POST /auth/login` — логин, возвращает JWT
 - `GET /artifacts`, `POST /artifacts`, `GET /artifacts/{id}` — базовый CRUD без авторизации
-- `GET /partner/me`, `GET /partner/subscriptions`, `GET /partner/subscriptions/{id}/digest`, `POST /partner/requests` — партнёрские (нужен токен с ролью `partner`)
-- `GET /curator/artifacts`, `POST /curator/artifacts/{id}/approve|reject`, `PUT /curator/artifacts/{id}/tags`, `GET /curator/requests`, `PATCH /curator/requests/{id}` — кураторские (нужен токен с ролью `curator`)
+- `GET /partner/me`, `.../subscriptions`, `.../subscriptions/{id}/digest` (с `can_read` на каждый артефакт), `.../requests`, `.../artifacts/{id}/read` (открыть полный текст — редирект для ВКР, PDF для статьи/доклада), `.../internships`, `.../favorites` — партнёрские (`partner`)
+- `GET /curator/artifacts`, `.../approve|reject`, `.../tags`, `GET /curator/requests`, `POST /curator/requests/{id}/decision` (разрешить/нет на full_text-запрос) — кураторские (`curator`/`admin`)
+- `GET /author/me`, `.../artifacts`, `PATCH .../artifacts/{id}/read-policy`, `GET .../requests` (входящие запросы на чтение — с именем компании и работы), `POST .../requests/{id}/decision` — кабинет автора (`author`)
+- `GET /authors/{id}`, `GET /teachers/{id}` — кликабельные профили автора/руководителя ВКР (доступны `partner`/`curator`/`admin`; партнёру — урезанный профиль без email/даты рождения)
+- `GET/POST /admin/users`, `GET/POST /admin/partners` — только `admin`. Роль `admin` также имеет полный доступ ко всем эндпоинтам `/curator/*` и `/authors/*`
 
 Документация Swagger: http://localhost:8000/docs — там же можно авторизоваться (кнопка Authorize, вставить `Bearer <token>`) и дёргать защищённые эндпоинты прямо из интерфейса.
 
@@ -86,3 +92,6 @@ curl http://localhost:8000/partner/subscriptions -H "Authorization: Bearer $TOKE
 - Таблицы создаются через `create_all` — при усложнении схемы стоит перейти на Alembic-миграции
 - `GET/POST /artifacts` пока без авторизации — открытый вопрос к фронту в `docs/api-contract.md`
 - Нет эндпоинта `GET /tags` — фронту неоткуда взять список `tag_id` для `PUT /curator/artifacts/{id}/tags`, кроме как из тегов уже загруженных артефактов
+- `POST /authors/sso/tumgu` — мок, а не реальный SSO/LDAP ТюмГУ. Тело функции `parse_tumgu_profile()` в `app/sso.py` — единственное место, которое надо будет заменить
+- Профиль преподавателя (`Teacher`) — тоже демо-данные, без входа/кабинета; наполняется только через `seed.py`
+- Доступ к полному тексту выдаётся per-partner (`PartnerArtifactAccess`) — один одобренный запрос открывает текст только тому партнёру, который его запросил, не всем сразу
