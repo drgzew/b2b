@@ -1,11 +1,14 @@
 from .models import Artifact
-from .schemas import ArtifactRead
-
+from .schemas import ArtifactRead, TagRead
 
 def to_artifact_read(artifact: Artifact) -> ArtifactRead:
     return ArtifactRead(
-        **artifact.dict(exclude={"embedding", "author_id"}),
-        tags=[tag.name for tag in artifact.tags],
-        author_id=artifact.author_id,
-        author_name=artifact.author.full_name if artifact.author else None,
+        **artifact.dict(exclude={"embedding"}),
+        tags=[
+            TagRead(
+                id=tag.id,
+                name=tag.name
+            )
+            for tag in artifact.tags
+        ],
     )
