@@ -1,19 +1,24 @@
-import os
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
-from .routers import auth, curator
 from sqlmodel import Session, select
-from fastapi.middleware.cors import CORSMiddleware
 
 from .converters import to_artifact_read
 from .db import get_session, init_db
 from .models import Artifact, Tag
-from .routers import partner
+from .routers import admin, author, authors, auth, curator, partner, teachers
 from .schemas import ArtifactCreate, ArtifactRead
-from app.routers import tags
 
 app = FastAPI(title="Подписка на университет — API")
+
+app.include_router(auth.router)
+app.include_router(partner.router)
+app.include_router(curator.router)
+app.include_router(authors.router)
+app.include_router(author.router)
+app.include_router(teachers.router)
+app.include_router(admin.router)
+
 
 @app.on_event("startup")
 def on_startup() -> None:
