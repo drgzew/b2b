@@ -144,6 +144,9 @@ def import_artifacts(artifacts_data: List[Dict], session: Session, wipe: bool = 
 
     # Финальный коммит
     session.commit()
+
+    stats['openalex_count'] = sum(1 for a in artifacts_data if a.get('source') == 'openalex')
+    stats['libtheses_count'] = sum(1 for a in artifacts_data if a.get('source') == 'utmnlib')
     return stats
 
 def generate_report(stats: Dict, output_path: str = "data-report.md") -> None:
@@ -171,6 +174,12 @@ def generate_report(stats: Dict, output_path: str = "data-report.md") -> None:
     lines.append("")
     lines.append(f"- **С непустой аннотацией:** {stats['with_annotation']} ({stats['with_annotation']/stats['total']*100:.1f}%)")
     lines.append(f"- **С проставленными тегами:** {stats['with_tags']} ({stats['with_tags']/stats['total']*100:.1f}%)")
+    lines.append("")
+
+    lines.append("## По источникам")
+    lines.append("")
+    lines.append(f"- **OpenAlex:** {stats.get('openalex_count', 0)}")
+    lines.append(f"- **UTMN Library (ВКР):** {stats.get('libtheses_count', 0)}")
     lines.append("")
 
     lines.append("## Топ-10 самых популярных тегов")

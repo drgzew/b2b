@@ -1,4 +1,4 @@
-# Список источникв
+# Список источников
 
 1. **Электронная библиотека ТюмГУ** [\[ссылка\]](https://library.utmn.ru/) [\[поиск по ВКР\]](https://library.utmn.ru/search/result?f=documentType%3ADT03) *(нужен доступ)*
 
