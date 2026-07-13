@@ -2,6 +2,7 @@ import React from 'react';
 import { Layout } from 'antd';
 import Header from './Header';
 import PartnerLayout from '../layouts/PartnerLayout';
+import CuratorLayout from '../layouts/CuratorLayout';
 
 const { Content } = Layout;
 
@@ -14,6 +15,10 @@ const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
 
   if (role === 'partner') {
     return <PartnerLayout>{children}</PartnerLayout>;
+  }
+
+  if (role === 'curator') {
+    return <CuratorLayout>{children}</CuratorLayout>;
   }
 
   return (

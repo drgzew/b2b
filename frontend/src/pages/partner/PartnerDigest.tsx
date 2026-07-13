@@ -113,10 +113,16 @@ const PartnerDigest: React.FC = () => {
 
   const handleInternship = async (artifactId: number) => {
     try {
-      await partnerAPI.createRequest({ artifact_id: artifactId, type: 'internship' });
+      await partnerAPI.createInternship(
+        artifactId,
+        ""
+      );
+
       message.success('Приглашение на стажировку отправлено');
     } catch (error: any) {
-      message.error(error.response?.data?.detail || 'Ошибка отправки приглашения');
+      message.error(
+        error.response?.data?.detail || 'Ошибка отправки приглашения'
+      );
     }
   };
 

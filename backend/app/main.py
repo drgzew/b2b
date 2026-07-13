@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from .converters import to_artifact_read
 from .db import get_session, init_db
 from .models import Artifact, Tag
-from .routers import admin, author, authors, auth, curator, partner, teachers
+from .routers import admin, author, authors, auth, curator, partner, teachers, tags
 from .schemas import ArtifactCreate, ArtifactRead
 
 app = FastAPI(title="Подписка на университет — API")
@@ -30,6 +30,7 @@ app.include_router(authors.router)
 app.include_router(author.router)
 app.include_router(teachers.router)
 app.include_router(admin.router)
+app.include_router(tags.router)
 
 @app.on_event("startup")
 def on_startup() -> None:

@@ -236,18 +236,34 @@ def create_internship(
     session: Session = Depends(get_session),
 ):
     partner = _get_partner_or_404(user, session)
-    artifact = session.get(Artifact, data.artifact_id)
+
+    artifact = session.exec(
+        select(Artifact)
+        .where(Artifact.id == data.artifact_id)
+        .options(selectinload(Artifact.author))
+    ).first()
+
     if not artifact:
         raise HTTPException(status_code=404, detail="Artifact not found")
 
-    internship = Internship(
-        artifact_id=data.artifact_id,
-        partner_id=partner.id,
-        student_name=data.student_name,
+    author_name = (
+        artifact.author.full_name
+        if artifact.author
+        else "Автор не указан"
     )
+
+    internship = Internship(
+        artifact_id=artifact.id,
+        partner_id=partner.id,
+        student_name=author_name,
+    )
+
     session.add(internship)
     session.commit()
     session.refresh(internship)
+
+    internship.artifact = artifact
+
     return _to_internship_read(internship)
 
 

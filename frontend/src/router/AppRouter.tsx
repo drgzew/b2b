@@ -16,10 +16,11 @@ import TeacherProfile from '../pages/profile/TeacherProfile';
 
 import Queue from '../pages/curator/Queue';
 import ArtifactPage from '../pages/curator/ArtifactPage';
-import Requests from '../pages/curator/Requests';
+// import Requests from '../pages/curator/Requests';
 import MyArtifacts from '../pages/participant/MyArtifacts';
 
 import AdminPanel from '../pages/admin/AdminPanel';
+import CuratorRequests from '../pages/curator/CuratorRequests';
 
 const AppRouter = () => {
   return (
@@ -47,7 +48,7 @@ const AppRouter = () => {
       {/* Куратор */}
       <Route path="/curator/queue" element={<RoleLayout><Queue /></RoleLayout>} />
       <Route path="/curator/artifact/:id" element={<RoleLayout><ArtifactPage /></RoleLayout>} />
-      <Route path="/curator/requests" element={<RoleLayout><Requests /></RoleLayout>} />
+      <Route path="/curator/requests" element={<RoleLayout><CuratorRequests /></RoleLayout>} />
 
       {/* Участник (студент) */}
       <Route path="/participant/my-artifacts" element={<RoleLayout><MyArtifacts /></RoleLayout>} />

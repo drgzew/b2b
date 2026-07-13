@@ -127,15 +127,6 @@ class RequestCreate(SQLModel):
     type: str
 
 
-class RequestRead(SQLModel):
-    id: int
-    artifact_id: int
-    partner_id: int
-    type: str
-    status: str
-    created_at: datetime
-
-
 class FavoriteCreate(SQLModel):
     artifact_id: int
 
@@ -213,3 +204,26 @@ class UserCreate(SQLModel):
 class PartnerCreate(SQLModel):
     name: str
     contact_email: str
+
+class ArtifactShortRead(SQLModel):
+    id: int
+    title: str
+    author_name: str | None = None
+
+
+class PartnerShortRead(SQLModel):
+    id: int
+    name: str
+
+class RequestRead(SQLModel):
+    id: int
+
+    artifact_id: int
+    partner_id: int
+
+    artifact: ArtifactShortRead
+    partner: PartnerShortRead
+
+    type: str
+    status: str
+    created_at: datetime
