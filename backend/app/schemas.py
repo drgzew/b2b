@@ -83,6 +83,7 @@ class RequestCreate(SQLModel):
 class ArtifactShortRead(SQLModel):
     id: int
     title: str
+    author_name: str | None = None
 
 
 class PartnerShortRead(SQLModel):
@@ -113,3 +114,7 @@ class FavoriteCreate(SQLModel):
 class FavoriteArtifactRead(SQLModel):
     id: int
     artifact: ArtifactRead
+
+
+class InternshipStatusUpdate(SQLModel):
+    status: str

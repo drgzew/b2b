@@ -17,7 +17,8 @@ from ..schemas import (
     SubscriptionRead,
     SubscriptionsUpdate,
     FavoriteCreate,
-    FavoriteArtifactRead
+    FavoriteArtifactRead,
+    InternshipStatusUpdate
 )
 from ..security import require_role
 
@@ -151,7 +152,7 @@ def create_request(
     # поэтому собираем ответ вручную, а не через req.dict().
     return RequestRead(
         id=req.id,
-        artifact=ArtifactShortRead(id=artifact.id, title=artifact.title),
+        artifact=ArtifactShortRead(id=artifact.id, title=artifact.title, author_name=artifact.author_name),
         partner=PartnerShortRead(id=partner.id, name=partner.name),
         type=req.type,
         status=req.status,
@@ -250,3 +251,90 @@ def remove_favorite(
     session.commit()
 
     return {"message": "Removed from favorites"}
+
+@router.get("/internships", response_model=List[RequestRead])
+def get_internships(
+    user: User = Depends(require_role("partner")),
+    session: Session = Depends(get_session),
+):
+    partner = _get_partner_or_404(user, session)
+
+    requests = session.exec(
+        select(RequestModel)
+        .where(
+            RequestModel.partner_id == partner.id,
+            RequestModel.type == "internship"
+        )
+    ).all()
+
+    return [
+        RequestRead(
+            id=req.id,
+            artifact=ArtifactShortRead(
+                id=req.artifact.id,
+                title=req.artifact.title,
+                author_name=req.artifact.author_name,
+            ),
+            partner=PartnerShortRead(
+                id=req.partner.id,
+                name=req.partner.name,
+            ),
+            type=req.type,
+            status=req.status,
+            created_at=req.created_at,
+        )
+        for req in requests
+    ]
+
+@router.patch(
+    "/internships/{internship_id}/status",
+    response_model=RequestRead
+)
+def update_internship_status(
+    internship_id: int,
+    data: InternshipStatusUpdate,
+    user: User = Depends(require_role("partner")),
+    session: Session = Depends(get_session),
+):
+    partner = _get_partner_or_404(user, session)
+
+    req = session.get(RequestModel, internship_id)
+
+    if not req:
+        raise HTTPException(
+            status_code=404,
+            detail="Internship request not found"
+        )
+
+    if req.partner_id != partner.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not your request"
+        )
+
+    if req.type != "internship":
+        raise HTTPException(
+            status_code=400,
+            detail="Not internship request"
+        )
+
+    req.status = data.status
+
+    session.add(req)
+    session.commit()
+    session.refresh(req)
+
+    return RequestRead(
+        id=req.id,
+        artifact=ArtifactShortRead(
+            id=req.artifact.id,
+            title=req.artifact.title,
+        ),
+        partner=PartnerShortRead(
+            id=req.partner.id,
+            name=req.partner.name,
+        ),
+        type=req.type,
+        status=req.status,
+        created_at=req.created_at,
+    )
