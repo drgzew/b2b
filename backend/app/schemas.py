@@ -216,6 +216,11 @@ class TagsUpdate(SQLModel):
     tag_ids: List[int]
 
 
+class TagRead(SQLModel):
+    id: int
+    name: str
+
+
 class RequestStatusUpdate(SQLModel):
     status: str  # in_progress | done
 
