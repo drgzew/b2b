@@ -35,15 +35,24 @@ def create_user(
 ):
     valid_roles = {"partner", "curator", "admin", "author"}
     if data.role not in valid_roles:
-        raise HTTPException(status_code=400, detail=f"role must be one of {sorted(valid_roles)}")
+        raise HTTPException(
+            status_code=400, detail=f"role must be one of {sorted(valid_roles)}"
+        )
+
     if data.role == "partner" and not data.partner_id:
-        raise HTTPException(status_code=400, detail="partner_id is required for role 'partner'")
+        raise HTTPException(
+            status_code=400, detail="partner_id is required for role 'partner'"
+        )
     if data.role == "author" and not data.author_id:
-        raise HTTPException(status_code=400, detail="author_id is required for role 'author'")
+        raise HTTPException(
+            status_code=400, detail="author_id is required for role 'author'"
+        )
 
     existing = session.exec(select(User).where(User.email == data.email)).first()
     if existing:
-        raise HTTPException(status_code=400, detail="User with this email already exists")
+        raise HTTPException(
+            status_code=400, detail="User with this email already exists"
+        )
 
     new_user = User(
         email=data.email,

@@ -24,7 +24,9 @@ router = APIRouter(prefix="/author", tags=["author"])
 
 def _get_own_author_or_400(user: User, session: Session) -> Author:
     if not user.author_id:
-        raise HTTPException(status_code=400, detail="User is not linked to an author profile")
+        raise HTTPException(
+            status_code=400, detail="User is not linked to an author profile"
+        )
     author = session.get(Author, user.author_id)
     if not author:
         raise HTTPException(status_code=404, detail="Author profile not found")
@@ -47,8 +49,9 @@ def update_my_job_status(
     session: Session = Depends(get_session),
 ):
     """Самостоятельный выбор статуса в кабинете автора — в отличие от
-    PATCH /authors/{id}/job-status в routers/authors.py, который тот же
-    статус меняет от лица куратора/админа (например, со слов автора)."""
+    PATCH /authors/{id}/job-status в routers/authors.py, который тот же статус
+    меняет от лица куратора/админа (например, со слов автора).
+    """
     valid_statuses = {"searching", "not_searching", "employed"}
     if data.job_status not in valid_statuses:
         raise HTTPException(
@@ -90,11 +93,14 @@ def update_read_policy(
     session: Session = Depends(get_session),
 ):
     """Автор решает: открыть работу для чтения всем партнёрам сразу ('open')
-    или требовать подтверждение на каждый запрос ('requires_approval', дефолт —
-    'по умолчанию стоит запрет')."""
+    или требовать подтверждение на каждый запрос ('requires_approval', дефолт — 'по умолчанию стоит запрет').
+    """
     valid = {"open", "requires_approval"}
     if data.read_policy not in valid:
-        raise HTTPException(status_code=400, detail=f"read_policy must be one of {sorted(valid)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"read_policy must be one of {sorted(valid)}",
+        )
 
     author = _get_own_author_or_400(user, session)
     artifact = _get_own_artifact_or_404(artifact_id, author, session)
@@ -106,65 +112,94 @@ def update_read_policy(
     return to_artifact_read(artifact)
 
 
-def _to_author_request_read(req: RequestModel) -> AuthorRequestRead:
-    return AuthorRequestRead(
-        id=req.id,
-        artifact_id=req.artifact_id,
-        artifact_title=req.artifact.title if req.artifact else "",
-        partner_id=req.partner_id,
-        partner_name=req.partner.name if req.partner else "",
-        status=req.status,
-        created_at=req.created_at,
-    )
-
-
 @router.get("/requests", response_model=List[AuthorRequestRead])
 def list_my_requests(
-    status: Optional[str] = Query(
-        default=None, description="Фильтр по статусу: sent | approved | rejected"
-    ),
     user: User = Depends(require_role("author")),
     session: Session = Depends(get_session),
 ):
-    """Запросы на полный текст по работам этого автора. Отображает компанию
-    и название работы — не голые id (см. AuthorRequestRead)."""
+    """Список запросов на полный текст артефактов автора."""
     author = _get_own_author_or_400(user, session)
 
-    query = select(RequestModel).where(RequestModel.type == "full_text")
-    requests = session.exec(query).all()
-    mine = [r for r in requests if r.artifact and r.artifact.author_id == author.id]
-    if status:
-        mine = [r for r in mine if r.status == status]
-    return [_to_author_request_read(r) for r in mine]
+    artifacts = session.exec(
+        select(Artifact).where(Artifact.author_id == author.id)
+    ).all()
+    artifact_ids = [a.id for a in artifacts]
+
+    if not artifact_ids:
+        return []
+
+    requests = session.exec(
+        select(RequestModel).where(RequestModel.artifact_id.in_(artifact_ids))
+    ).all()
+
+    result = []
+    for req in requests:
+        artifact = next((a for a in artifacts if a.id == req.artifact_id), None)
+        partner = req.partner
+        result.append(
+            AuthorRequestRead(
+                id=req.id,
+                artifact_id=req.artifact_id,
+                artifact_title=artifact.title if artifact else "Unknown",
+                partner_id=req.partner_id,
+                partner_name=partner.name if partner else "Unknown",
+                type=req.type,
+                status=req.status,
+                created_at=req.created_at,
+            )
+        )
+
+    return result
 
 
-@router.post("/requests/{request_id}/decision", response_model=RequestRead)
+@router.post("/requests/{request_id}/decision", response_model=AuthorRequestRead)
 def decide_on_request(
     request_id: int,
     data: RequestDecision,
     user: User = Depends(require_role("author")),
     session: Session = Depends(get_session),
 ):
-    """Кнопка 'разрешить/нет' в кабинете автора. Одобрение выдаёт партнёру
-    доступ именно к этому артефакту (см. app/access.py) — не открывает работу
-    всем подряд и не меняет read_policy на будущее."""
+    """Автор принимает или отклоняет запрос на полный текст от партнёра.
+    Если approve=True — выдаём доступ через PartnerArtifactAccess.
+    """
     author = _get_own_author_or_400(user, session)
 
     req = session.get(RequestModel, request_id)
-    if not req or req.type != "full_text" or not req.artifact or req.artifact.author_id != author.id:
+    if not req:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    if req.status != "sent":
-        raise HTTPException(status_code=400, detail=f"Request already decided: '{req.status}'")
+    artifact = session.get(Artifact, req.artifact_id)
+    if not artifact or artifact.author_id != author.id:
+        raise HTTPException(status_code=404, detail="Request not found")
 
-    req.status = "approved" if data.approve else "rejected"
-    req.decided_by = "author"
-    req.decided_at = datetime.utcnow()
-    session.add(req)
-    session.commit()
+    if req.type != "full_text":
+        raise HTTPException(
+            status_code=400, detail="Only full_text requests can be decided by author"
+        )
+
+    if req.status != "sent":
+        raise HTTPException(
+            status_code=400, detail=f"Request already in status '{req.status}'"
+        )
 
     if data.approve:
-        grant_read_access(session, artifact_id=req.artifact_id, partner_id=req.partner_id)
+        req.status = "approved"
+        grant_read_access(session, req.artifact_id, req.partner_id)
+    else:
+        req.status = "rejected"
 
+    session.add(req)
+    session.commit()
     session.refresh(req)
-    return RequestRead(**req.dict())
+
+    partner = req.partner
+    return AuthorRequestRead(
+        id=req.id,
+        artifact_id=req.artifact_id,
+        artifact_title=artifact.title,
+        partner_id=req.partner_id,
+        partner_name=partner.name if partner else "Unknown",
+        type=req.type,
+        status=req.status,
+        created_at=req.created_at,
+    )

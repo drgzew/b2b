@@ -1,9 +1,9 @@
 from typing import List, Optional
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
-
-from datetime import datetime
 
 from ..access import grant_read_access
 from ..converters import to_artifact_read
@@ -18,7 +18,8 @@ router = APIRouter(prefix="/curator", tags=["curator"])
 @router.get("/artifacts", response_model=List[ArtifactRead])
 def list_artifacts_for_curator(
     status: Optional[str] = Query(
-        default=None, description="Фильтр по curator_status: draft | approved | rejected"
+        default=None,
+        description="Фильтр по curator_status: draft | approved | rejected",
     ),
     user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
@@ -73,12 +74,14 @@ def update_artifact_tags(
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
-
     tags = session.exec(select(Tag).where(Tag.id.in_(data.tag_ids))).all()
+
     found_ids = {t.id for t in tags}
     missing = set(data.tag_ids) - found_ids
     if missing:
-        raise HTTPException(status_code=400, detail=f"Unknown tag_ids: {sorted(missing)}")
+        raise HTTPException(
+            status_code=400, detail=f"Unknown tag_ids: {sorted(missing)}"
+        )
 
     artifact.tags = tags  # полная перезапись списка тегов, а не добавление
     session.add(artifact)
@@ -103,49 +106,54 @@ def decide_on_request(
     user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
-    """Та же кнопка 'разрешить/нет', что и в кабинете автора (см.
-    routers/author.py: decide_on_request) — куратор равноправен с автором
-    в решении по full_text-запросу, по требованиям продукта запрос идёт
-    'куратору и автору' одновременно, решает тот, кто первый ответит."""
+    """Куратор/админ принимает или отклоняет запрос партнёра на полный текст.
+    Если approve=True — выдаём доступ через PartnerArtifactAccess.
+    """
     req = session.get(RequestModel, request_id)
-    if not req or req.type != "full_text":
+    if not req:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    if req.status != "sent":
-        raise HTTPException(status_code=400, detail=f"Request already decided: '{req.status}'")
+    if req.type != "full_text":
+        raise HTTPException(
+            status_code=400, detail="Only full_text requests can be decided by curator"
+        )
 
-    req.status = "approved" if data.approve else "rejected"
-    req.decided_by = "curator"
-    req.decided_at = datetime.utcnow()
-    session.add(req)
-    session.commit()
+    if req.status != "sent":
+        raise HTTPException(
+            status_code=400, detail=f"Request already in status '{req.status}'"
+        )
 
     if data.approve:
-        grant_read_access(session, artifact_id=req.artifact_id, partner_id=req.partner_id)
+        req.status = "approved"
+        grant_read_access(session, req.artifact_id, req.partner_id)
+    else:
+        req.status = "rejected"
 
+    session.add(req)
+    session.commit()
     session.refresh(req)
     return RequestRead(**req.dict())
 
 
-@router.patch("/requests/{request_id}", response_model=RequestRead)
+@router.patch("/requests/{request_id}/status", response_model=RequestRead)
 def update_request_status(
     request_id: int,
     data: RequestStatusUpdate,
     user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
+    """Обновление статуса запроса (для запросов, уже обработанных)."""
+    valid_statuses = {"in_progress", "done"}
+    if data.status not in valid_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"status must be one of {sorted(valid_statuses)}",
+        )
+
     req = session.get(RequestModel, request_id)
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
-    if req.type == "full_text":
-        # full_text решается только через POST /decision — тот путь ещё и
-        # выдаёт PartnerArtifactAccess. Через этот generic-эндпоинт можно было
-        # бы выставить status="approved" и тихо не выдать доступ — расхождение
-        # между "запрос одобрен" и "партнёр реально может читать текст".
-        raise HTTPException(
-            status_code=400,
-            detail="Use POST /curator/requests/{id}/decision for full_text requests",
-        )
+
     req.status = data.status
     session.add(req)
     session.commit()

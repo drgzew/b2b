@@ -1,46 +1,29 @@
-import React from "react";
-import CuratorLayout from "../layouts/CuratorLayout";
-import PartnerLayout from "../layouts/PartnerLayout";
-import ParticipantLayout from "../layouts/ParticipantLayout";
+import React from 'react';
+import { Layout } from 'antd';
+import Header from './Header';
+import PartnerLayout from '../layouts/PartnerLayout';
+
+const { Content } = Layout;
 
 interface RoleLayoutProps {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }
 
-export default function RoleLayout({
-    children
-}: RoleLayoutProps) {
+const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
+  const role = localStorage.getItem('role');
 
-    const role = localStorage.getItem("role");
+  if (role === 'partner') {
+    return <PartnerLayout>{children}</PartnerLayout>;
+  }
 
-    if (role === "curator") {
-        return (
-            <CuratorLayout>
-                {children}
-            </CuratorLayout>
-        );
-    }
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <Header title="Кабинет" menuItems={[]} />
+      <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', borderRadius: 8 }}>
+        {children}
+      </Content>
+    </Layout>
+  );
+};
 
-    if (role === "partner") {
-        return (
-            <PartnerLayout>
-                {children}
-            </PartnerLayout>
-        );
-    }
-
-    if (role === "participant") {
-        return (
-            <ParticipantLayout>
-                {children}
-            </ParticipantLayout>
-        );
-    }
-
-    // Для остальных (admin, student) – просто children без Layout
-    return (
-        <>
-            {children}
-        </>
-    );
-}
+export default RoleLayout;

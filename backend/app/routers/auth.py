@@ -10,7 +10,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, session: Session = Depends(get_session)):
+def login(
+    data: LoginRequest,
+    session: Session = Depends(get_session),
+):
     user = session.exec(select(User).where(User.email == data.email)).first()
     if not user or not verify_password(data.password, user.password_hash):
         # Намеренно одинаковая ошибка для "нет такого email" и "неверный пароль",

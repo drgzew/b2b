@@ -20,9 +20,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      setTempSelectedIds(selectedTopicIds);
-    }
+    if (visible) setTempSelectedIds(selectedTopicIds);
   }, [visible, selectedTopicIds]);
 
   const filteredTopics = topics.filter(topic =>
@@ -39,15 +37,15 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
 
   const handleSave = async () => {
     if (tempSelectedIds.length === 0) {
-      message.warning('Выберите хотя бы одну тему для подписки');
+      message.warning('Выберите хотя бы одну тему');
       return;
     }
     setSaving(true);
     try {
       await onSave(tempSelectedIds);
       onClose();
-    } catch {
-      // сообщение об ошибке показывает вызывающий компонент
+    } catch (error) {
+      // ошибка уже обработана в родителе
     } finally {
       setSaving(false);
     }
@@ -60,7 +58,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
       onCancel={onClose}
       footer={[
         <Button key="cancel" onClick={onClose}>Отмена</Button>,
-        <Button key="save" type="primary" loading={saving} style={{ background: '#00AEEF' }} onClick={handleSave}>
+        <Button key="save" type="primary" style={{ background: '#00AEEF' }} loading={saving} onClick={handleSave}>
           Сохранить
         </Button>,
       ]}
@@ -69,14 +67,12 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
       <Input
         placeholder="🔍 Поиск по темам и тегам..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={e => setSearch(e.target.value)}
         style={{ marginBottom: 16 }}
       />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto' }}>
+      <div style={{ maxHeight: 400, overflowY: 'auto' }}>
         {filteredTopics.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#6b7a8a', padding: 20 }}>
-            Ничего не найдено
-          </div>
+          <div style={{ textAlign: 'center', color: '#6b7a8a', padding: 20 }}>Ничего не найдено</div>
         ) : (
           filteredTopics.map(topic => {
             const isChecked = tempSelectedIds.includes(topic.id);
@@ -95,17 +91,11 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <strong style={{ color: isChecked ? '#00AEEF' : '#1a2a3a' }}>
-                      {topic.name}
-                    </strong>
-                    <div style={{ fontSize: 14, color: '#6b7a8a', marginTop: 4 }}>
-                      {topic.description}
-                    </div>
+                    <strong style={{ color: isChecked ? '#00AEEF' : '#1a2a3a' }}>{topic.name}</strong>
+                    <div style={{ fontSize: 14, color: '#6b7a8a' }}>{topic.description}</div>
                     <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {topic.tags.slice(0, 6).map(tag => (
-                        <Tag key={tag.id} color={isChecked ? '#00AEEF' : undefined}>
-                          {tag.name}
-                        </Tag>
+                        <Tag key={tag.id} color={isChecked ? '#00AEEF' : undefined}>{tag.name}</Tag>
                       ))}
                       {topic.tags.length > 6 && <Tag>+{topic.tags.length - 6}</Tag>}
                     </div>
