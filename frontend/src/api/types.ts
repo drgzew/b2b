@@ -9,10 +9,20 @@ export type ArtifactType =
     | "talk"
     | "event";
 
+// export type RequestStatus =
+//     | "sent"
+//     | "in_progress"
+//     | "done";
 export type RequestStatus =
     | "sent"
+    | "accepted"
     | "in_progress"
-    | "done";
+    | "rejected"
+    | "completed";
+export type RequestType =
+    | "full_text"
+    | "internship"
+    | "rnd";
 
 export interface Tag {
     id:number;
@@ -32,14 +42,14 @@ export interface Artifact {
     tags:Tag[];
 }
 
-export interface ArtifactRequest {
-    id:number;
-    artifact_id:number;
-    partner_id:number;
-    type:string;
-    status:RequestStatus;
-    created_at:string;
-}
+// export interface ArtifactRequest {
+//     id:number;
+//     artifact_id:number;
+//     partner_id:number;
+//     type:string;
+//     status:RequestStatus;
+//     created_at:string;
+// }
 
 export interface ArtifactRequest {
     id:number;
@@ -51,7 +61,7 @@ export interface ArtifactRequest {
         id:number;
         name:string;
     };
-    type:string;
+    type: RequestType;
     status: RequestStatus;
     created_at:string;
 }
@@ -72,4 +82,36 @@ export interface DigestItem {
 export interface RequestPayload {
   artifact_id: number;
   type: 'full_text' | 'internship' | 'rnd';
+}
+
+export interface PartnerRequest {
+
+    id:number;
+
+    artifact:{
+        author_name: string;
+        id:number;
+        title:string;
+        type:ArtifactType;
+    };
+
+    partner:{
+        id:number;
+        name:string;
+    };
+
+    author:{
+        id:number;
+        name:string;
+    };
+
+    type:RequestType;
+
+    status:RequestStatus;
+
+    curator_comment?:string;
+
+    created_at:string;
+
+    updated_at?:string;
 }
