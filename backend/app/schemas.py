@@ -105,3 +105,11 @@ class TagsUpdate(SQLModel):
 
 class RequestStatusUpdate(SQLModel):
     status: str  # in_progress | done
+
+
+class FavoriteCreate(SQLModel):
+    artifact_id: int
+
+class FavoriteArtifactRead(SQLModel):
+    id: int
+    artifact: ArtifactRead

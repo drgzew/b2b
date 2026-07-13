@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from ..converters import to_artifact_read
 from ..db import get_session
 from ..matching import match_by_tags
-from ..models import Artifact, Partner, Request as RequestModel, Subscription, Tag, User
+from ..models import Favorite, Artifact, Partner, Request as RequestModel, Subscription, Tag, User
 from ..schemas import (
     ArtifactShortRead,
     DigestEntry,
@@ -16,6 +16,8 @@ from ..schemas import (
     RequestRead,
     SubscriptionRead,
     SubscriptionsUpdate,
+    FavoriteCreate,
+    FavoriteArtifactRead
 )
 from ..security import require_role
 
@@ -155,3 +157,96 @@ def create_request(
         status=req.status,
         created_at=req.created_at,
     )
+
+@router.post("/favorites")
+def add_favorite(
+    data: FavoriteCreate,
+    user: User = Depends(require_role("partner")),
+    session: Session = Depends(get_session),
+):
+    partner = _get_partner_or_404(user, session)
+
+    existing = session.exec(
+        select(Favorite).where(
+            Favorite.partner_id == partner.id,
+            Favorite.artifact_id == data.artifact_id,
+        )
+    ).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Artifact already in favorites"
+        )
+
+    artifact = session.get(Artifact, data.artifact_id)
+
+    if not artifact:
+        raise HTTPException(
+            status_code=404,
+            detail="Artifact not found"
+        )
+
+    favorite = Favorite(
+        partner_id=partner.id,
+        artifact_id=data.artifact_id,
+    )
+
+    session.add(favorite)
+    session.commit()
+    session.refresh(favorite)
+
+    return favorite
+
+@router.get("/favorites", response_model=List[FavoriteArtifactRead])
+def get_favorites(
+    user: User = Depends(require_role("partner")),
+    session: Session = Depends(get_session),
+):
+    partner = _get_partner_or_404(user, session)
+
+    favorites = session.exec(
+        select(Favorite)
+        .where(Favorite.partner_id == partner.id)
+    ).all()
+
+    result = []
+
+    for favorite in favorites:
+        artifact = favorite.artifact
+
+        result.append(
+            FavoriteArtifactRead(
+                id=favorite.id,
+                artifact=to_artifact_read(artifact)
+            )
+        )
+
+    return result
+
+@router.delete("/favorites/{favorite_id}")
+def remove_favorite(
+    favorite_id: int,
+    user: User = Depends(require_role("partner")),
+    session: Session = Depends(get_session),
+):
+    partner = _get_partner_or_404(user, session)
+
+    favorite = session.get(Favorite, favorite_id)
+
+    if not favorite:
+        raise HTTPException(
+            status_code=404,
+            detail="Favorite not found"
+        )
+
+    if favorite.partner_id != partner.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not your favorite"
+        )
+
+    session.delete(favorite)
+    session.commit()
+
+    return {"message": "Removed from favorites"}

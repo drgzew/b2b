@@ -9,7 +9,7 @@ export interface Partner {
 export interface Subscription {
   id: number;
   name: string;
-  tags: string[];         
+  tags: string[];
   description?: string;
 }
 
@@ -77,9 +77,13 @@ export const partnerAPI = {
 
   // POST /partner/favorites — добавить артефакт в избранное
   addFavorite: (artifactId: number) =>
-    apiClient.post('/partner/favorites', { artifact_id: artifactId }),
+    apiClient.post('/partner/favorites', {
+      artifact_id: artifactId
+    }),
 
   // DELETE /partner/favorites/{id} — удалить из избранного
   removeFavorite: (favoriteId: number) =>
     apiClient.delete(`/partner/favorites/${favoriteId}`),
+
+
 };

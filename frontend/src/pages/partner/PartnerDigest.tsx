@@ -149,18 +149,17 @@ const PartnerDigest: React.FC = () => {
     }
   };
 
-  // Заглушка для «Сохранить в избранное» (избранное пока не хранится на сервере)
-  const handleSaveFavorite = (title: string) => {
-    message.success(`«${title}» добавлено в избранное`);
-  };
+  const handleSaveFavorite = async (artifactId: number, title: string) => {
+    try {
+      await partnerAPI.addFavorite(artifactId);
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: 50 }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
+      message.success(`«${title}» добавлено в избранное`);
+    } catch (error: any) {
+      message.error(
+        error.response?.data?.detail || 'Не удалось добавить в избранное'
+      );
+    }
+  };
 
   return (
     <div className="page-container">
@@ -246,7 +245,9 @@ const PartnerDigest: React.FC = () => {
             relevance={entry.relevance}
             onRequestFullText={handleFullTextRequest}
             onInternship={handleInternshipRequest}
-            onSaveFavorite={handleSaveFavorite}
+            onSaveFavorite={() =>
+              handleSaveFavorite(entry.artifact.id, entry.artifact.title)
+            }
           />
         ))
       )}

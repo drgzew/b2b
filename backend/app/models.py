@@ -127,3 +127,11 @@ class User(SQLModel, table=True):
     partner_id: Optional[int] = Field(default=None, foreign_key="partner.id")
 
     partner: Optional[Partner] = Relationship(back_populates="users")
+
+class Favorite(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    partner_id: int = Field(foreign_key="user.id")
+    artifact_id: int = Field(foreign_key="artifact.id")
+    added_at: datetime = Field(default_factory=datetime.utcnow)
+    partner: "User" = Relationship()
+    artifact: "Artifact" = Relationship()
