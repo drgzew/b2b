@@ -88,6 +88,7 @@ def to_request_read(req: RequestModel) -> RequestRead:
         artifact=ArtifactShortRead(
             id=req.artifact.id,
             title=req.artifact.title,
+            author_name=req.artifact.author_name,
         ),
         partner=PartnerShortRead(
             id=req.partner.id,

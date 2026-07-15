@@ -65,11 +65,11 @@ export default function CuratorLayout({
                 title="Кабинет куратора"
                 menuItems={[
                     {
-                        label: `Управление ${stats.draft}`,
+                        label: `Управление (${stats.draft})`,
                         path: "/curator/queue"
                     },
                     {
-                        label: `Запросы ${stats.requests}`,
+                        label: `Запросы (${stats.requests})`,
                         path: "/curator/requests"
                     }
                 ]}
