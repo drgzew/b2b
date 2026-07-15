@@ -1,3 +1,4 @@
+import argparse
 from collections import Counter, defaultdict
 import json
 import nltk
@@ -114,6 +115,39 @@ def describe_work(work, index=None):
     print(f" - Аннотация: \"{unpack_abstract(work.abstract_inverted_index)}\"")
 
     print()
+
+def detect_language(text):
+    """ Detect language of the text.
+    """
+    russian_chars = len(re.findall(r'[а-яА-Я]', text))
+    english_chars = len(re.findall(r'[a-zA-Z]', text))
+
+    if russian_chars == 0 and english_chars == 0:
+        return 'unknown'
+
+    if russian_chars > english_chars * 1.5:
+        return 'ru'
+    elif english_chars > russian_chars * 1.5:
+        return 'en'
+    else:
+        # Смешанный случай — проверяем наличие русских слов
+        if russian_chars > 10:
+            return 'ru'
+        return 'en'
+
+def filter_by_lang(works, texts, lang, ratio):
+    target = []
+    miss = []
+    final_miss = []
+    for n in texts:
+        detected_lang = detect_language(texts[n])
+        if detected_lang == lang:
+            target.append(works[n])
+        else:
+            miss.append(works[n])
+    miss_limit = (len(target) - ratio * len(target)) / ratio
+    final_miss = miss[:int(miss_limit)]
+    return target, final_miss
 
 def dump_works(works, keywords, output_path):
     """ Dump info about works as JSON.
@@ -253,6 +287,18 @@ def file_extract_text(path):
     except Exception as e:
         print(f"Ошибка при чтении PDF {path}: {e}")
         return ""
+
+def download_files_texts(works):
+    """ Download files and extract their texts in bulk.
+    """
+    downloaded_paths = {}
+    pdf_texts = {}
+    N = len(works)
+    for n, work in enumerate(works):
+        if path := download_pdf(work, n + 1, N, "data/pdfs"):
+            downloaded_paths[n] = path
+            pdf_texts[n] = file_extract_text(path)
+    return downloaded_paths, pdf_texts
 
 def text_preprocess(text):
     """ Preprocess text: tokenize, lemmatize, remove stopwords.
@@ -564,9 +610,24 @@ def assign_taxonomy_tags(work, taxonomy):
     return subfielfds
 
 def main():
-    N = 200
+    parser = argparse.ArgumentParser(
+        description="Парсинг статей из OpenAlex"
+    )
+    parser.add_argument(
+        "-n",
+        type=int,
+        default=100,
+        help="Количество работ для парсинга"
+    )
+    parser.add_argument(
+        "--ratio",
+        type=float,
+        default=.5,
+        help="Доля работ на русском языке"
+    )
+    args = parser.parse_args()
 
-    works = get_works(N)
+    works = get_works(args.n)
 
     for n, work in enumerate(works):
         describe_work(work, n + 1)
@@ -585,21 +646,32 @@ def main():
     with open("docs/taxonomy.json", 'w', encoding='utf-8') as file:
         json.dump(hierarchy, file, ensure_ascii=False, indent=2)
 
-    downloaded_paths = {}
-    for n, work in enumerate(works):
-        if path := download_pdf(work, n + 1, N, "data/pdfs"):
-            downloaded_paths[n] = path
-    print(f"Скачано статей: {len(downloaded_paths)}")
+    downloaded_paths, downloaded_texts = download_files_texts(works)
+    downloaded_works = [work for n, work in enumerate(works) if n in downloaded_paths]
+    print(f"Скачано статей: {len(downloaded_works)}")
+
+    in_russian, in_english = filter_by_lang(works, downloaded_texts, 'ru', args.ratio)
+    filtered_works = in_russian + in_english
+    print("Статей на русском:", len(in_russian))
+    print("Статей на английском:", len(in_english))
+    print("Статей всего:", len(filtered_works))
 
     keywords = {}
-    for n in range(len(works)):
-        kws = assign_taxonomy_tags(works[n], hierarchy)
-        if n in downloaded_paths:
-            text = file_extract_text(downloaded_paths[n])
-            kws += text_keywords_combined(text)
+    for n in range(len(filtered_works)):
+        kws = assign_taxonomy_tags(filtered_works[n], hierarchy)
+        if n in downloaded_texts:
+            kws += text_keywords_combined(downloaded_texts[n])
         keywords[n] = list(set(kws)) if kws else None
 
-    dump_works(works, keywords, "data/raw/openalex.json")
+    dump_works(filtered_works, keywords, "data/raw/openalex.json")
+
+    keywords_in_russian = {}
+    for n in range(len(in_russian)):
+        kws = assign_taxonomy_tags(in_russian[n], hierarchy)
+        if n in downloaded_texts:
+            kws += text_keywords_combined(downloaded_texts[n])
+        keywords_in_russian[n] = list(set(kws)) if kws else None
+    dump_works(in_russian, keywords_in_russian, "data/raw/openalex-ru.json")
 
 if __name__ == '__main__':
     main()
