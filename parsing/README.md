@@ -13,12 +13,13 @@
 
 ```cmd
 cd parsing
-python -m parsers.openalex
+python -m parsers.openalex -n 1000 --ratio .67
 ```
 
 Созадутся файлы:
 
 - `parsing/data/raw/openalex.json` - Описание найденных статей в формате JSON;
+- `parsing/data/raw/openalex-ru.json` - Описание найденных статей на русском языке в формате JSON;
 - `parsing/data/pdfs/` - Папка со скачанными статьями в формате PDF;
 - `parsing/docs/taxonomy.md` - Описание таксономии OpenAlex в формате Markdown;
 - `parsing/docs/taxonomy.json` - Описание таксономии OpenAlex в формате JSON.
@@ -27,10 +28,23 @@ python -m parsers.openalex
 
 ```cmd
 cd parsing
-python -m parsers.libtheses
+python -m parsers.libtheses --number=50
 ```
 
-Ничего не создастся, так как сайт библиотеки приказал долго жить.
+Создастся файл:
+
+`parsing/data/raw/libtheses.json` - Описание найденных ВКР в формате JSON.
+
+## Парсинг магистерских диссертаций из библиотеки ТюмГУ
+
+```cmd
+cd parsing
+python -m parsers.repotheses --number=50
+```
+
+Создастся файл:
+
+`parsing/data/raw/repotheses.json` - Описание найденных магистерских диссертаций в формате JSON.
 
 ## Нормализация публикаций и ВКР к формату артефакта
 
