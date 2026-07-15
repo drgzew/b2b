@@ -307,20 +307,37 @@ def seed() -> None:
     init_db()
 
     with Session(engine) as session:
-        # 1. Полная очистка
-        session.execute(text("TRUNCATE TABLE digestitem, request, artifacttag, subscriptiontag, artifact, subscription, partner, \"user\", author, teacher, favorite, internship CASCADE;"))
+        # 1. Очистка — только b2b-специфичных таблиц (партнёры, подписки, демо-
+        # пользователи и т.п.). НЕ трогаем artifact/artifacttag/author/tag:
+        # если перед seed.py уже отработал parsing.scripts.import и залил
+        # реальные ВКР/статьи, TRUNCATE этих таблиц уничтожил бы их при каждом
+        # повторном запуске seed.py — ровно то, что и происходило раньше.
+        session.execute(text(
+            "TRUNCATE TABLE digestitem, request, subscriptiontag, subscription, "
+            "partner, \"user\", favorite, internship CASCADE;"
+        ))
         session.commit()
 
-        # 2. Создаём теги с фиксированными ID
+        # 2. Теги таксономии — get-or-create по имени, а не принудительный id.
+        # Раньше здесь стоял session.merge(Tag(id=tag_data["id"], ...)) с
+        # захардкоженными id из TOPICS — если в базе уже были теги с другими
+        # id под тем же именем (например, из парсера или прошлого запуска
+        # seed.py, т.к. tag больше не в TRUNCATE), merge пытался переиспользовать
+        # чужой id и падал на UNIQUE-ограничении имени. get-or-create по имени
+        # этого не делает: совпадающий по имени тег просто переиспользуется.
         print("Создаём теги из topics.ts...")
+        existing_tags_by_name = {tag.name: tag for tag in session.exec(select(Tag)).all()}
         for topic in TOPICS:
             for tag_data in topic["tags"]:
-                tag = Tag(id=tag_data["id"], name=tag_data["name"])
-                session.merge(tag)
+                if tag_data["name"] not in existing_tags_by_name:
+                    tag = Tag(name=tag_data["name"])
+                    session.add(tag)
+                    session.flush()  # получаем id, не дожидаясь commit
+                    existing_tags_by_name[tag.name] = tag
         session.commit()
 
-        tags_by_name = {tag.name: tag for tag in session.exec(select(Tag)).all()}
-        print(f"Создано {len(tags_by_name)} тегов")
+        tags_by_name = existing_tags_by_name
+        print(f"Тегов в базе: {len(tags_by_name)}")
 
         # 3. Преподаватель
         teacher = session.exec(select(Teacher).where(Teacher.email == TEACHER["email"])).first()
@@ -330,13 +347,23 @@ def seed() -> None:
             session.commit()
             session.refresh(teacher)
 
-        # 4. Создаём авторов и артефакты (без привязки тегов, сделаем позже)
+        # 4. Создаём авторов и артефакты (без привязки тегов, сделаем позже).
+        # get-or-create по title — artifact больше не в TRUNCATE (см. выше),
+        # так что повторный запуск seed() не должен плодить дубли демо-работ.
+        # Так же не мутируем сам ARTIFACTS (dict(data), а не data.pop на
+        # оригинале) — иначе повторный вызов seed() в одном процессе (например,
+        # из будущей admin-ручки) упадёт на второй раз с KeyError на tag_names.
         print("Создаём артефакты...")
         authors_by_email = {}
         author_counter = 0
         artifacts_list = []
 
-        for data in ARTIFACTS:
+        existing_artifacts_by_title = {
+            a.title: a for a in session.exec(select(Artifact)).all()
+        }
+
+        for raw_data in ARTIFACTS:
+            data = dict(raw_data)
             author_counter += 1
             author = get_or_create_author(
                 session,
@@ -348,19 +375,22 @@ def seed() -> None:
             authors_by_email[author.email] = author
 
             tag_names = data.pop("tag_names")
-            artifact = Artifact(
-                title=data["title"],
-                type=data["type"],
-                annotation=data["annotation"],
-                curator_status=data["curator_status"],
-                read_policy=data["read_policy"],
-                file_path=data["file_path"],
-                author_id=author.id,
-                supervisor_id=teacher.id,
-            )
-            session.add(artifact)
-            session.commit()
-            session.refresh(artifact)
+
+            artifact = existing_artifacts_by_title.get(data["title"])
+            if artifact is None:
+                artifact = Artifact(
+                    title=data["title"],
+                    type=data["type"],
+                    annotation=data["annotation"],
+                    curator_status=data["curator_status"],
+                    read_policy=data["read_policy"],
+                    file_path=data["file_path"],
+                    author_id=author.id,
+                    supervisor_id=teacher.id,
+                )
+                session.add(artifact)
+                session.commit()
+                session.refresh(artifact)
             artifacts_list.append((artifact, tag_names))
 
         # 5. Привязываем теги к артефактам через прямой SQL

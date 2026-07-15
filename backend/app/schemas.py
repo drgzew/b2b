@@ -26,6 +26,19 @@ class AuthorJobStatusUpdate(SQLModel):
     job_status: str
 
 
+# --- Импорт артефактов (без консоли, см. POST /admin/import) ---
+class ImportResult(SQLModel):
+    total: int
+    imported: int
+    skipped: int
+    errors: int
+    error_details: List[str]
+    tags_created: int
+    tags_existing: int
+    with_annotation: int
+    with_tags: int
+
+
 class TumguSsoLogin(SQLModel):
     email: str
 
