@@ -17,6 +17,10 @@ def map_artifact_type(work: Dict, source: str = "openalex") -> str:
     # Для ВКР из libtheses — всегда "vkr"
     if source == "libtheses":
         return "vkr"
+    
+    # Для магистерских диссертаций из репозитория
+    if source == "repotheses":
+        return "vkr"
 
     # Для OpenAlex — определяем по типу
     artifact_type = "article"
@@ -103,6 +107,40 @@ def normalize_libtheses_work(work: Dict, index: int) -> Dict:
 
     return artifact
 
+def normalize_repothesis_work(work: Dict, index: int) -> Dict:
+    """ Turn one UTMN repository master's thesis record into Artifact format.
+    """
+    access_level = determine_access_level(work)
+    authors = work.get('authors', [])
+    author_name = ", ".join(authors) if authors else None
+
+    # Собираем ключевые слова из work
+    keywords = work.get('keywords', [])
+    normalized_keywords = normalize_keywords(keywords)
+    tags = [{"name": tag} for tag in normalized_keywords] if normalized_keywords else []
+
+    artifact = {
+        "id": None,  # ID is up to database
+        "title": work.get('title', f"Магистерская диссертация без названия {index}"),
+        "type": "vkr",  # Магистерские диссертации тоже относятся к ВКР
+        "annotation": work.get('abstract', '') or "",
+        "curator_status": "draft",
+        "access_level": access_level,
+        "author_name": author_name,
+        "created_at": datetime.utcnow().isoformat(),
+        "embedding": None,  # fill it later
+        "tags": tags,  # теги из ключевых слов репозитория
+        "doi": None,  # У диссертаций нет DOI
+        "source_url": work.get('source_url'),
+        "year": work.get('year'),
+        "openalex_id": None,  # Нет OpenAlex ID
+        "institute": work.get('institute'),
+        "major": work.get('major'),
+        "source": "repotheses"
+    }
+
+    return artifact
+
 def load_openalex_data(file_path: str) -> List[Dict]:
     """ Load OpenAlex data from JSON file.
     """
@@ -124,7 +162,24 @@ def load_openalex_data(file_path: str) -> List[Dict]:
         return []
 
 def load_libtheses_data(file_path: str) -> List[Dict]:
-    """ Load  UTMN library thesis data from JSON file.
+    """ Load UTMN library thesis data from JSON file.
+    """
+    file_path = Path(file_path)
+    if not file_path.exists():
+        print(f"Файл {file_path} не найден")
+        return []
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    if isinstance(data, list):
+        return data
+    else:
+        print(f"Неверный формат данных в {file_path}")
+        return []
+
+def load_repothesis_data(file_path: str) -> List[Dict]:
+    """ Load UTMN repository master's thesis data from JSON file.
     """
     file_path = Path(file_path)
     if not file_path.exists():
@@ -152,6 +207,7 @@ def save_normalized_data(artifacts: List[Dict], output_path: str):
 def main():
     artifacts = []
 
+    # 1. Загрузка данных OpenAlex
     print("Загрузка данных OpenAlex")
     openalex_works = load_openalex_data("data/raw/openalex.json")
     total_openalex = len(openalex_works)
@@ -163,6 +219,7 @@ def main():
         except Exception as e:
             print(f"Ошибка при нормализации статьи OpenAlex {n + 1}: {e}")
 
+    # 2. Загрузка данных библиотеки ТюмГУ (ВКР)
     print("Загрузка данных библиотеки ТюмГУ")
     libtheses_works = load_libtheses_data("data/raw/libtheses.json")
     total_libtheses = len(libtheses_works)
@@ -173,10 +230,23 @@ def main():
         except Exception as e:
             print(f"Ошибка при нормализации ВКР из библиотеки ТюмГУ {n + 1}: {e}")
 
+    # 3. Загрузка данных репозитория ТюмГУ (магистерские диссертации)
+    print("Загрузка данных репозитория ТюмГУ")
+    repothesis_works = load_repothesis_data("data/raw/repotheses.json")
+    total_repothesis = len(repothesis_works)
+    for n, work in enumerate(repothesis_works):
+        try:
+            artifact = normalize_repothesis_work(work, n + 1)
+            artifacts.append(artifact)
+        except Exception as e:
+            print(f"Ошибка при нормализации магистерской диссертации из репозитория {n + 1}: {e}")
+
+    # Сохранение результата
     save_normalized_data(artifacts, "data/normalized.json")
-    print(f"Нормализовано артефактов: {len(artifacts)}")
+    print(f"\nНормализовано артефактов: {len(artifacts)}")
     print(f" - Из OpenAlex: {total_openalex}")
     print(f" - Из библиотеки ТюмГУ: {total_libtheses}")
+    print(f" - Из репозитория ТюмГУ: {total_repothesis}")
 
 if __name__ == '__main__':
     main()
