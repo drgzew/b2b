@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from ..db import get_session
 from ..importer import import_artifacts
-from ..models import Partner, User
+from ..models import Author, Partner, User
 from ..schemas import ImportResult, PartnerCreate, PartnerRead, UserCreate, UserRead
 from ..security import hash_password, require_role
 
@@ -103,6 +103,13 @@ def create_user(
         raise HTTPException(
             status_code=400, detail="author_id is required for role 'author'"
         )
+
+    # Проверяем существование связанных записей заранее — иначе FK-нарушение
+    # уронит запрос в 500 без внятного сообщения.
+    if data.partner_id and not session.get(Partner, data.partner_id):
+        raise HTTPException(status_code=400, detail=f"Partner {data.partner_id} not found")
+    if data.author_id and not session.get(Author, data.author_id):
+        raise HTTPException(status_code=400, detail=f"Author {data.author_id} not found")
 
     existing = session.exec(select(User).where(User.email == data.email)).first()
     if existing:

@@ -1,86 +1,64 @@
 import { apiClient } from "./client";
 import type {
-    PartnerRequest,
-    RequestStatus
+    PartnerRequest
 } from "./types";
 
 
-export async function getCuratorRequests(
-    status?: RequestStatus
-): Promise<PartnerRequest[]> {
+export async function getCuratorRequests(): Promise<PartnerRequest[]> {
 
     const response = await apiClient.get(
-        "/curator/requests",
-        {
-            params:{
-                status
-            }
-        }
+        "/curator/requests"
     );
 
     return response.data;
 }
 
 
-
-export async function getRequest(
-    id:number
-):Promise<PartnerRequest>{
+// Решение по запросу на полный текст: одобрить (выдаёт партнёру доступ
+// к тексту через PartnerArtifactAccess) или отклонить.
+// Бэкенд принимает решение только для type=full_text в статусе sent.
+export async function decideRequest(
+    id: number,
+    approve: boolean
+): Promise<PartnerRequest> {
 
     const response =
-        await apiClient.get(
-            `/curator/requests/${id}`
+        await apiClient.post(
+            `/curator/requests/${id}/decision`,
+            {
+                approve
+            }
         );
 
     return response.data;
 }
 
+
+// Смена рабочего статуса запроса (для стажировок/НИОКР):
+// бэкенд принимает только "in_progress" и "done".
+export async function updateRequestStatus(
+    id: number,
+    status: "in_progress" | "done"
+): Promise<PartnerRequest> {
+
+    const response =
+        await apiClient.patch(
+            `/curator/requests/${id}/status`,
+            {
+                status
+            }
+        );
+
+    return response.data;
+}
 
 
 export async function takeRequest(
-    id:number
-):Promise<PartnerRequest>{
+    id: number
+): Promise<PartnerRequest> {
 
-    const response =
-        await apiClient.patch(
-            `/curator/requests/${id}`,
-            {
-                status:"in_progress"
-            }
-        );
-
-    return response.data;
-}
-
-
-
-export async function updateRequestStatus(
-    id:number,
-    status:RequestStatus,
-    comment?:string
-):Promise<PartnerRequest>{
-
-    const response =
-        await apiClient.patch(
-            `/curator/requests/${id}`,
-            {
-                status,
-                comment
-            }
-        );
-
-
-    return response.data;
-}
-
-
-
-export async function getRequestStats(){
-
-    const response =
-        await apiClient.get(
-            "/curator/requests/stats"
-        );
-
-    return response.data;
+    return updateRequestStatus(
+        id,
+        "in_progress"
+    );
 }

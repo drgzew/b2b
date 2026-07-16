@@ -2,13 +2,12 @@ import os
 from typing import List
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import tags
 from sqlmodel import Session, select
 
 from .converters import to_artifact_read
 from .db import get_session, init_db
 from .models import Artifact, Tag
-from .routers import admin, author, authors, auth, curator, partner, teachers, tags
+from .routers import admin, author, authors, auth, curator, partner, tags, teachers
 from .schemas import ArtifactCreate, ArtifactRead
 
 app = FastAPI(title="Подписка на университет — API")

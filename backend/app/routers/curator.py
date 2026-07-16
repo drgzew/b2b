@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from ..access import grant_read_access
 from ..converters import to_artifact_read
@@ -124,6 +124,8 @@ def to_request_read(req: RequestModel) -> RequestRead:
         artifact=ArtifactShortRead(
             id=req.artifact.id,
             title=req.artifact.title,
+            # ФИО автора показывается в карточке запроса у куратора
+            author_name=req.artifact.author.full_name if req.artifact.author else None,
         ),
         partner=PartnerShortRead(
             id=req.partner.id,
@@ -175,6 +177,26 @@ def decide_on_request(
     session.commit()
     session.refresh(req)
     return to_request_read(req)
+
+
+@router.get("/stats")
+def curator_stats(
+    user: User = Depends(require_role("curator", "admin")),
+    session: Session = Depends(get_session),
+):
+    """Счётчики для бейджей в меню куратора: работы на модерации и
+    необработанные запросы партнёров."""
+    draft_count = session.exec(
+        select(func.count())
+        .select_from(Artifact)
+        .where(Artifact.curator_status == "draft")
+    ).one()
+    requests_count = session.exec(
+        select(func.count())
+        .select_from(RequestModel)
+        .where(RequestModel.status == "sent")
+    ).one()
+    return {"draft": draft_count, "requests": requests_count}
 
 
 @router.patch("/requests/{request_id}/status", response_model=RequestRead)

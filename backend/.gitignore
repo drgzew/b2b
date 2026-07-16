@@ -1,0 +1,3 @@
+# Локальные данные для seed/импорта (копии parsing/data)
+data/
+__pycache__/

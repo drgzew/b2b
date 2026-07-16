@@ -5,6 +5,7 @@
     python scripts/seed.py --file /data/normalized.json
 """
 import os
+import re
 import sys
 import json
 import random
@@ -75,62 +76,105 @@ REAL_PROGRAMS = [
 ]
 
 # ============================================================
-# ТЕГИ
+# ТЕМЫ ПОДПИСОК (9 шт.) — построены вокруг реальных тематических кластеров
+# в данных ТюмГУ (экономика, гуманитарные науки, физкультура, экология,
+# химия, ИТ). id тегов не задаём — теги создаются get-or-create по имени.
 # ============================================================
 TOPICS = [
     {
         "id": 1,
-        "name": "Нефтегазовые технологии",
-        "description": "Исследования в области добычи и моделирования месторождений",
+        "name": "Экономика и финансы",
+        "description": "Финансы, банковское дело, менеджмент и конкурентоспособность",
         "tags": [
-            {"id": 1, "name": "нефть"},
-            {"id": 2, "name": "газ"},
-            {"id": 3, "name": "моделирование"},
-            {"id": 4, "name": "геология"},
-            {"id": 5, "name": "3D-модель"},
-            {"id": 21, "name": "газовая промышленность"},
-            {"id": 22, "name": "цифровой двойник"},
-            {"id": 23, "name": "сейсмика"},
-            {"id": 24, "name": "бурение"},
+            {"name": "экономика"},
+            {"name": "финансы"},
+            {"name": "менеджмент"},
+            {"name": "конкурентоспособность"},
+            {"name": "источники финансирования"},
         ],
     },
     {
         "id": 2,
-        "name": "Искусственный интеллект",
-        "description": "AI, машинное обучение и интеллектуальные системы",
+        "name": "Право и государственное управление",
+        "description": "Юриспруденция, публичное и муниципальное управление",
         "tags": [
-            {"id": 6, "name": "AI"},
-            {"id": 7, "name": "машинное обучение"},
-            {"id": 8, "name": "нейросети"},
-            {"id": 9, "name": "NLP"},
-            {"id": 10, "name": "Big Data"},
-            {"id": 25, "name": "computer vision"},
+            {"name": "право"},
+            {"name": "государственное управление"},
         ],
     },
     {
         "id": 3,
-        "name": "Информационные технологии",
-        "description": "Разработка программных и информационных систем",
+        "name": "Филология и лингвистика",
+        "description": "Русский язык, языкознание, литература и перевод",
         "tags": [
-            {"id": 11, "name": "React"},
-            {"id": 12, "name": "Backend"},
-            {"id": 13, "name": "Python"},
-            {"id": 28, "name": "API"},
-            {"id": 31, "name": "информационные системы"},
-            {"id": 32, "name": "кибербезопасность"},
-            {"id": 33, "name": "сети"},
+            {"name": "филология"},
+            {"name": "лингвистика"},
+            {"name": "русский язык"},
+            {"name": "лексика"},
         ],
     },
     {
         "id": 4,
-        "name": "Экология и энергетика",
-        "description": "Экологические исследования и новые источники энергии",
+        "name": "Журналистика и медиакоммуникации",
+        "description": "Журналистика, медиа и массовые коммуникации",
         "tags": [
-            {"id": 14, "name": "экология"},
-            {"id": 15, "name": "очистка воды"},
-            {"id": 16, "name": "энергетика"},
-            {"id": 17, "name": "наноматериалы"},
-            {"id": 29, "name": "возобновляемая энергетика"},
+            {"name": "журналистика"},
+            {"name": "медиа"},
+        ],
+    },
+    {
+        "id": 5,
+        "name": "Педагогика и образование",
+        "description": "Педагогика, методики обучения и функциональная грамотность",
+        "tags": [
+            {"name": "педагогика"},
+            {"name": "образование"},
+            {"name": "функциональная грамотность"},
+            {"name": "психология"},
+        ],
+    },
+    {
+        "id": 6,
+        "name": "Физическая культура и спорт",
+        "description": "Физическое воспитание, спортивная подготовка и методики тренировок",
+        "tags": [
+            {"name": "физическая культура"},
+            {"name": "спорт"},
+            {"name": "тренировочный процесс"},
+        ],
+    },
+    {
+        "id": 7,
+        "name": "Экология и науки о Земле",
+        "description": "Экология, лесное хозяйство, география и геология",
+        "tags": [
+            {"name": "экология"},
+            {"name": "география"},
+            {"name": "геология"},
+            {"name": "гидрология"},
+            {"name": "лесные пожары"},
+        ],
+    },
+    {
+        "id": 8,
+        "name": "Химия и новые материалы",
+        "description": "Химия, наноматериалы и функциональные материалы",
+        "tags": [
+            {"name": "химия"},
+            {"name": "наноматериалы"},
+        ],
+    },
+    {
+        "id": 9,
+        "name": "Математика, ИТ и искусственный интеллект",
+        "description": "Математика, моделирование, информационные системы и машинное обучение",
+        "tags": [
+            {"name": "математика"},
+            {"name": "моделирование"},
+            {"name": "информационные системы"},
+            {"name": "машинное обучение"},
+            {"name": "Python"},
+            {"name": "Big Data"},
         ],
     },
 ]
@@ -144,8 +188,9 @@ PARTNERS = [
         "contact_email": "rnd@gpn-demo.ru",
         "login_email": "gpn@demo.ru",
         "subscriptions": [
-            {"topic_id": 1, "name": "Нефтегазовые технологии"},
-            {"topic_id": 2, "name": "Искусственный интеллект"},
+            {"topic_id": 1},  # Экономика и финансы
+            {"topic_id": 8},  # Химия и новые материалы
+            {"topic_id": 9},  # Математика, ИТ и ИИ
         ],
     },
     {
@@ -153,8 +198,9 @@ PARTNERS = [
         "contact_email": "it@yandex-demo.ru",
         "login_email": "yandex@demo.ru",
         "subscriptions": [
-            {"topic_id": 2, "name": "Искусственный интеллект"},
-            {"topic_id": 3, "name": "Информационные технологии"},
+            {"topic_id": 3},  # Филология и лингвистика
+            {"topic_id": 4},  # Журналистика и медиакоммуникации
+            {"topic_id": 5},  # Педагогика и образование
         ],
     },
     {
@@ -162,8 +208,9 @@ PARTNERS = [
         "contact_email": "eco@eco-demo.ru",
         "login_email": "eco@demo.ru",
         "subscriptions": [
-            {"topic_id": 4, "name": "Экология и энергетика"},
-            {"topic_id": 1, "name": "Нефтегазовые технологии"},
+            {"topic_id": 7},  # Экология и науки о Земле
+            {"topic_id": 6},  # Физическая культура и спорт
+            {"topic_id": 2},  # Право и государственное управление
         ],
     },
 ]
@@ -294,8 +341,69 @@ def map_program_to_tags(program: Optional[str]) -> List[str]:
     for key, tags in program_to_tags.items():
         if key in program_lower:
             return tags[:3]
-    
+
     return ["информационные системы", "машинное обучение"]
+
+
+# ============================================================
+# ТЕМАТИЧЕСКИЕ ТЕГИ ПО НАПРАВЛЕНИЮ / ИНСТИТУТУ / НАЗВАНИЮ
+# 100 ВКР библиотеки приходят без ключевых слов — выводим тег темы из текста
+# работы, чтобы она попала в релевантную подписку (из 9 тем выше). Правила
+# двуязычные: данные содержат и русские, и английские тексты.
+# ============================================================
+NOISE_TAGS = {
+    "магистерская диссертация",
+    "выпускная квалификационная работа",
+    "бакалаврская работа",
+    "master thesis",
+    "master's thesis",
+    "bachelor thesis",
+}
+
+THEME_RULES = [
+    (r"эконом|финанс|кредит|бюджет|менеджмент|тариф|бухгалт|инвестиц|econom|financ|\bbank|market|business", ["экономика", "финансы"]),
+    (r"юриспруд|\bправо|правов|государствен\w*\s+управлен|муниципал|\blaw\b|legal|jurisprud|\bcourt", ["право", "государственное управление"]),
+    (r"журналист|\bмедиа|масс\w*\s+коммуникац|journalis|\bmedia\b|mass communicat", ["журналистика", "медиа"]),
+    (r"филолог|лингвист|языкознан|русский язык|литератур|лексик|семиот|перевод|дискурс|фразеолог|philolog|linguist|language|literatur|semiot|discourse|translation", ["филология", "лингвистика"]),
+    (r"педагог|образован|грамотност|обучени|воспитани|дидакт|\bшкол|pedagog|education|teaching|didactic|literacy", ["педагогика", "образование"]),
+    (r"психолог|благополуч|psycholog|cognitive|mental health|emotion", ["психология"]),
+    (r"физическ\w*\s+культур|\bспорт|тренировоч|гимнаст|дзюдо|футбол|волейбол|физическое воспитан|атлет|\bsport|physical (culture|education|training)|athlet", ["физическая культура", "спорт"]),
+    (r"эколог|\bлес|биомасс|растительн|гидролог|\bпочв|географ|геолог|зондирован|субаркт|углерод|\bпожар|картограф|геоинформат|природопользован|\bнефт|\bгаз\b|ecolog|environment|forest|climate|carbon|geolog|geograph|hydrolog|\bsoil|remote sensing|petroleum|\boil\b", ["экология", "география"]),
+    (r"хими|наномат|полимер|синтез|катализ|\bматериал|chemis|nanomat|polymer|synthesis|catalys|\bmaterial", ["химия", "наноматериалы"]),
+    (r"математ|механик|робот|мехатрон|моделирован|статист|числен|\bmath|mechanic|robot|\bmodel|numerical|statistic|equation|physic", ["математика", "моделирование"]),
+    (r"информацион\w*\s+систем|программн|компьютерн|машинн\w*\s+обучен|нейросет|искусствен\w*\s+интеллект|инфокоммуник|информационная безопасн|кибербез|machine learning|neural|computer|software|algorithm|\bdata\b|information system|artificial intelligence|cyber", ["информационные системы", "машинное обучение"]),
+]
+
+
+def derive_theme_tags(work: Dict) -> List[str]:
+    """Тематические теги по тексту работы (название + направление + институт +
+    имеющиеся ключевые слова) — чтобы работа без внятных ключевых слов всё
+    равно попадала в тематическую подписку."""
+    text = " ".join([
+        work.get("title", "") or "",
+        work.get("major", "") or "",
+        work.get("institute", "") or "",
+        " ".join(t.get("name", "") for t in work.get("tags", [])),
+    ]).lower()
+    result: List[str] = []
+    for pattern, tags in THEME_RULES:
+        if re.search(pattern, text):
+            for t in tags:
+                if t not in result:
+                    result.append(t)
+    return result
+
+
+def prioritize_tags(tags: List[str], limit: int = 8) -> List[str]:
+    """Русские теги в приоритете (по ним матчатся подписки), дубли убраны,
+    не больше limit штук."""
+    seen, ru, other = set(), [], []
+    for t in tags:
+        if not t or t in seen:
+            continue
+        seen.add(t)
+        (ru if re.search(r"[а-яё]", t, re.I) else other).append(t)
+    return (ru + other)[:limit]
 
 
 def seed(normalized_path: Optional[str] = None) -> None:
@@ -313,15 +421,21 @@ def seed(normalized_path: Optional[str] = None) -> None:
         session.commit()
         print("✅ База данных очищена")
 
-        # 2. Создаём теги
+        # 2. Создаём теги — get-or-create по имени, а не merge по жёстким id:
+        # таблица tag не входит в TRUNCATE выше, и после импорта/прошлых
+        # прогонов теги могут существовать с другими id — merge по id=1..33
+        # в этом случае падает на UNIQUE(name).
         print("🏷️ Создаём теги...")
+        tags_by_name = {tag.name: tag for tag in session.exec(select(Tag)).all()}
         for topic in TOPICS:
             for tag_data in topic["tags"]:
-                tag = Tag(id=tag_data["id"], name=tag_data["name"])
-                session.merge(tag)
+                if tag_data["name"] not in tags_by_name:
+                    tag = Tag(name=tag_data["name"])
+                    session.add(tag)
+                    session.flush()
+                    tags_by_name[tag.name] = tag
         session.commit()
-        tags_by_name = {tag.name: tag for tag in session.exec(select(Tag)).all()}
-        print(f"   Создано {len(tags_by_name)} тегов")
+        print(f"   Тегов в базе: {len(tags_by_name)}")
 
         # 3. Загружаем данные из normalized.json
         normalized_data = []
@@ -379,29 +493,32 @@ def seed(normalized_path: Optional[str] = None) -> None:
         
         for i, work in enumerate(normalized_data):
             title = work.get("title", f"Артефакт {i+1}")
-            author_name = work.get("author_name")
+            # Формат v2 (scripts/normalize.py): author — объект с реальным
+            # автором ТюмГУ и направлением, подобранным по тематике работы.
+            # Legacy-фолбэк — свободная строка author_name.
+            author_obj = work.get("author") or {}
+            author_name = author_obj.get("full_name") or work.get("author_name")
+            author_program = author_obj.get("program")
             year = work.get("year")
             annotation = work.get("annotation", "")
             source = work.get("source", "unknown")
             
-            # Извлекаем теги
-            tags_data = work.get("tags", [])
-            tag_names = [t.get("name") for t in tags_data if t.get("name")]
-            
-            # Если тегов нет, генерируем на основе источника
+            # Теги: производные тематические (по направлению/институту/названию)
+            # + реальные ключевые слова из normalized.json (без служебного мусора
+            # библиотеки). Русские в приоритете — по ним матчатся подписки — не
+            # больше 8 штук.
+            real_tags = [
+                t.get("name") for t in work.get("tags", [])
+                if t.get("name") and t["name"].lower() not in NOISE_TAGS
+            ]
+            tag_names = prioritize_tags(derive_theme_tags(work) + real_tags)
             if not tag_names:
-                if source == "openalex":
-                    tag_names = ["машинное обучение", "Big Data"]
-                elif source == "repotheses":
-                    tag_names = ["информационные системы", "машинное обучение"]
-                else:
-                    tag_names = ["информационные системы"]
+                tag_names = ["информационные системы"]
             
-            # Если есть institute и major, используем их
+            # Направление: приоритет — подобранное normalize.py по тематике
+            # (author.program), затем сырой major источника, затем случайное.
             institute = work.get("institute")
-            major = work.get("major")
-            
-            # Если major отсутствует, выбираем случайное направление
+            major = author_program or work.get("major")
             if not major:
                 major = random.choice(REAL_PROGRAMS)
                 print(f"   ⚠️ Для '{title[:30]}...' сгенерировано направление: {major}")
@@ -447,22 +564,58 @@ def seed(normalized_path: Optional[str] = None) -> None:
                 print(f"   Создан автор: {author_name} ({email})")
             
             author = authors_cache[author_name]
-            
-            # Ограничиваем количество тегов до 4
-            tag_names = list(set(tag_names))[:4]
-            
-            supervisor = random.choice(list(teachers_cache.values())) if teachers_cache else None
-            read_policy = random.choices(["open", "requires_approval"], weights=[0.3, 0.7])[0]
-            
-            # Определяем curator_status: для OpenAlex статей сразу approved
-            curator_status = "approved" if source == "openalex" else "draft"
-            
+
+            # Научный руководитель: у ВКР normalize.py извлекает реального из
+            # библиографического описания — создаём его; иначе случайный.
+            supervisor = None
+            supervisor_obj = work.get("supervisor") or {}
+            supervisor_name = supervisor_obj.get("full_name")
+            if supervisor_name:
+                if supervisor_name not in teachers_cache:
+                    teacher = Teacher(
+                        full_name=supervisor_name,
+                        email=f"teacher{len(teachers_cache) + 1:04d}@utmn.ru",
+                        department="Тюменский государственный университет",
+                        position="Научный руководитель",
+                    )
+                    session.add(teacher)
+                    session.flush()
+                    teachers_cache[supervisor_name] = teacher
+                supervisor = teachers_cache[supervisor_name]
+            elif teachers_cache and artifact_type == "vkr":
+                supervisor = random.choice(list(teachers_cache.values()))
+
+            # Политика чтения: из normalized.json (открытые OA-источники ->
+            # open), фолбэк для legacy-записей — случайная.
+            read_policy = work.get("read_policy")
+            if read_policy not in ("open", "requires_approval"):
+                read_policy = random.choices(["open", "requires_approval"], weights=[0.3, 0.7])[0]
+
+            # Статус модерации: normalized.json приходит целиком в draft — это
+            # бесполезно для демо (партнёр не увидел бы ни одной работы, дайджест
+            # показывает только approved). Поэтому большинство одобряем, ~15%
+            # оставляем в очереди куратора. Явный approved/rejected из файла
+            # уважаем, если он там появится.
+            curator_status = work.get("curator_status")
+            if curator_status not in ("approved", "rejected"):
+                curator_status = random.choices(
+                    ["approved", "draft"], weights=[0.85, 0.15]
+                )[0]
+
+            # У модели Artifact нет колонки year — реальный год публикации
+            # кодируем в created_at, иначе все карточки показывают год сида.
+            created_at = (
+                datetime(int(year), 6, 1)
+                if year and 1990 <= int(year) <= 2100
+                else datetime.utcnow()
+            )
+
             artifact = Artifact(
                 title=title,
                 type=artifact_type,
                 annotation=annotation or "Нет аннотации",
                 file_path=source_url or None,
-                year=year,
+                created_at=created_at,
                 curator_status=curator_status,
                 read_policy=read_policy,
                 author_id=author.id,
@@ -471,14 +624,20 @@ def seed(normalized_path: Optional[str] = None) -> None:
             session.add(artifact)
             session.flush()
             
-            # Привязываем теги
+            # Привязываем теги: недостающие (не входящие в темы) создаём на лету,
+            # чтобы на карточке были видны и реальные ключевые слова, а не только
+            # тематические.
             for tag_name in tag_names:
                 tag = tags_by_name.get(tag_name)
-                if tag:
-                    session.execute(
-                        text("INSERT INTO artifacttag (artifact_id, tag_id) VALUES (:a, :t) ON CONFLICT DO NOTHING"),
-                        {"a": artifact.id, "t": tag.id}
-                    )
+                if not tag:
+                    tag = Tag(name=tag_name)
+                    session.add(tag)
+                    session.flush()
+                    tags_by_name[tag_name] = tag
+                session.execute(
+                    text("INSERT INTO artifacttag (artifact_id, tag_id) VALUES (:a, :t) ON CONFLICT DO NOTHING"),
+                    {"a": artifact.id, "t": tag.id}
+                )
             
             created_artifacts.append(artifact)
             if (i + 1) % 50 == 0:

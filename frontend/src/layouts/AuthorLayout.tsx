@@ -1,7 +1,7 @@
 // frontend/src/layouts/AuthorLayout.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { Layout, Badge } from 'antd';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Header from '../components/Header';
 import { authorAPI } from '../api/author';
 
@@ -13,7 +13,6 @@ export type AuthorLayoutContextType = {
 };
 
 const AuthorLayout: React.FC = () => {
-  const navigate = useNavigate();
   const [requestCount, setRequestCount] = useState(0);
   const [internshipCount, setInternshipCount] = useState(0);
 
@@ -23,7 +22,12 @@ const AuthorLayout: React.FC = () => {
         authorAPI.getRequests(),
         authorAPI.getInternships(),
       ]);
-      setRequestCount(requestsRes.data?.length || 0);
+      // В бейдже — только запросы, ждущие решения автора (полный текст,
+      // статус sent), а не все запросы за всю историю
+      const pendingRequests = (requestsRes.data || []).filter(
+        (req: any) => req.type === 'full_text' && req.status === 'sent'
+      );
+      setRequestCount(pendingRequests.length);
       const sentInternships = (internshipsRes.data || []).filter(
         (inv: any) => inv.status === 'sent'
       );

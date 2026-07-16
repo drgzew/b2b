@@ -9,13 +9,13 @@ import {
 } from "antd";
 
 import {
+    decideRequest,
     takeRequest,
     updateRequestStatus
 } from "../api/curatorRequests";
 
 import type {
-    PartnerRequest,
-    RequestStatus
+    PartnerRequest
 } from "../api/types";
 
 
@@ -28,25 +28,26 @@ interface Props {
 }
 
 
+// Статусы запроса на бэкенде: sent | in_progress | approved | rejected | done
 const getStatusLabel = (status: string) => {
     const statusMap: Record<string, { label: string; color: string }> = {
         sent: {
             label: "Отправлено",
             color: "blue"
         },
-        accepted: {
-            label: "Принято",
-            color: "green"
-        },
         in_progress: {
-            label: "В процессе",
+            label: "В работе",
             color: "orange"
+        },
+        approved: {
+            label: "Доступ выдан",
+            color: "green"
         },
         rejected: {
             label: "Отклонено",
             color: "red"
         },
-        completed: {
+        done: {
             label: "Завершено",
             color: "purple"
         }
@@ -82,6 +83,37 @@ export default function RequestCard({
     const statusInfo = getStatusLabel(request.status);
 
 
+    // Одобрение/отклонение запроса на полный текст: одобрение выдаёт
+    // партнёру доступ к документу (grant_read_access на бэкенде).
+    async function handleDecision(approve: boolean) {
+        setLoading(true);
+
+        try {
+            await decideRequest(
+                request.id,
+                approve
+            );
+
+            message.success(
+                approve
+                    ? "Доступ к полному тексту выдан партнёру"
+                    : "Запрос отклонён"
+            );
+
+            reload();
+
+        } catch (error: any) {
+            message.error(
+                error.response?.data?.detail ||
+                "Не удалось обработать запрос"
+            );
+
+        } finally {
+            setLoading(false);
+        }
+    }
+
+
     async function handleTake() {
         setLoading(true);
 
@@ -106,17 +138,17 @@ export default function RequestCard({
     }
 
 
-    async function handleStatus(status: RequestStatus) {
+    async function handleDone() {
         setLoading(true);
 
         try {
             await updateRequestStatus(
                 request.id,
-                status
+                "done"
             );
 
             message.success(
-                `Статус изменён на "${getStatusLabel(status).label}"`
+                "Запрос завершён"
             );
 
             reload();
@@ -131,6 +163,9 @@ export default function RequestCard({
             setLoading(false);
         }
     }
+
+
+    const isFullText = request.type === "full_text";
 
 
     return (
@@ -212,6 +247,41 @@ export default function RequestCard({
                 >
 
                     {
+                        // Запрос полного текста решается сразу: одобрить
+                        // (выдать доступ) или отклонить.
+                        isFullText &&
+                        request.status === "sent" &&
+
+                        <>
+                            <Button
+                                type="primary"
+                                onClick={() =>
+                                    handleDecision(true)
+                                }
+                                loading={loading}
+                            >
+                                Выдать доступ
+                            </Button>
+
+
+                            <Button
+                                danger
+                                onClick={() =>
+                                    handleDecision(false)
+                                }
+                                loading={loading}
+                            >
+                                Отклонить
+                            </Button>
+                        </>
+
+                    }
+
+
+                    {
+                        // Стажировки/НИОКР проходят через рабочий процесс:
+                        // взять в работу -> завершить.
+                        !isFullText &&
                         request.status === "sent" &&
 
                         <Button
@@ -227,42 +297,12 @@ export default function RequestCard({
                     {
                         request.status === "in_progress" &&
 
-                        <>
-                            <Button
-                                type="primary"
-                                onClick={() =>
-                                    handleStatus("accepted")
-                                }
-                                loading={loading}
-                            >
-                                Принять
-                            </Button>
-
-
-                            <Button
-                                danger
-                                onClick={() =>
-                                    handleStatus("rejected")
-                                }
-                                loading={loading}
-                            >
-                                Отклонить
-                            </Button>
-                        </>
-
-                    }
-
-
-                    {
-                        request.status === "accepted" &&
-
                         <Button
-                            onClick={() =>
-                                handleStatus("completed")
-                            }
+                            type="primary"
+                            onClick={handleDone}
                             loading={loading}
                         >
-                           Завершить
+                            Завершить
                         </Button>
 
                     }

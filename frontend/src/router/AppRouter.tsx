@@ -18,7 +18,6 @@ import TeacherProfile from '../pages/profile/TeacherProfile';
 import Queue from '../pages/curator/Queue';
 import ArtifactPage from '../pages/curator/ArtifactPage';
 import CuratorRequests from '../pages/curator/CuratorRequests';
-import MyArtifacts from '../pages/participant/MyArtifacts';
 
 // Админские страницы (из feature/partner-full)
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -54,9 +53,6 @@ const AppRouter = () => {
       <Route path="/curator/queue" element={<RoleLayout><Queue /></RoleLayout>} />
       <Route path="/curator/artifact/:id" element={<RoleLayout><ArtifactPage /></RoleLayout>} />
       <Route path="/curator/requests" element={<RoleLayout><CuratorRequests /></RoleLayout>} />
-
-      {/* Участник */}
-      <Route path="/participant/my-artifacts" element={<RoleLayout><MyArtifacts /></RoleLayout>} />
 
       {/* Админ */}
       <Route path="/admin" element={<RoleLayout><AdminDashboard /></RoleLayout>} />

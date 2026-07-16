@@ -8,6 +8,10 @@ const { Title, Paragraph, Text } = Typography;
 interface ArtifactCardProps {
   artifact: Artifact;
   relevance?: number;
+  // Доступен ли партнёру полный текст: read_policy=open или доступ уже выдан
+  // по одобренному запросу. Если да — показываем «Читать» вместо «Запросить».
+  canRead?: boolean;
+  onRead?: (artifactId: number) => void;
   onRequestFullText: (artifactId: number) => void;
   onInternship: (artifactId: number) => void;
   onSaveFavorite: (artifactId: number) => void;
@@ -26,6 +30,8 @@ const getYear = (dateStr: string) => new Date(dateStr).getFullYear();
 const ArtifactCard: React.FC<ArtifactCardProps> = ({
   artifact,
   relevance,
+  canRead = false,
+  onRead,
   onRequestFullText,
   onInternship,
   onSaveFavorite,
@@ -114,9 +120,17 @@ const ArtifactCard: React.FC<ArtifactCardProps> = ({
       )}
 
       <Space>
-        <Button type="primary" style={{ background: '#00AEEF' }} onClick={() => onRequestFullText(artifact.id)}>
-          📩 Запросить полный текст
-        </Button>
+        {canRead && onRead ? (
+          // Текст в открытом доступе (или доступ уже выдан) — открываем сразу,
+          // без запроса и ожидания одобрения куратором/автором.
+          <Button type="primary" style={{ background: '#52c41a' }} onClick={() => onRead(artifact.id)}>
+            📖 Ознакомиться с полным текстом
+          </Button>
+        ) : (
+          <Button type="primary" style={{ background: '#00AEEF' }} onClick={() => onRequestFullText(artifact.id)}>
+            📩 Запросить полный текст
+          </Button>
+        )}
         <Button onClick={() => onInternship(artifact.id)}>
           💼 Пригласить на стажировку
         </Button>

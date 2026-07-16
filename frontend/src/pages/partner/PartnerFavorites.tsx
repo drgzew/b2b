@@ -43,16 +43,47 @@ const PartnerFavorites: React.FC = () => {
       await partnerAPI.createRequest({ artifact_id: artifactId, type: 'full_text' });
       message.success('Запрос на полный текст отправлен куратору');
     } catch (error: any) {
+      const detail: string = error.response?.data?.detail || '';
+      // Текст уже доступен — не ошибка: сразу открываем документ.
+      if (error.response?.status === 400 && detail.includes('already accessible')) {
+        message.info('Полный текст уже доступен — открываю документ');
+        await handleRead(artifactId);
+        return;
+      }
+      message.error(detail || 'Ошибка');
+    }
+  };
+
+  // Приглашение на стажировку — отдельная сущность Internship (не Request):
+  // так оно появится и на странице стажировок партнёра, и у автора.
+  const handleInternship = async (artifactId: number) => {
+    try {
+      await partnerAPI.createInternship(artifactId, '');
+      message.success('Приглашение на стажировку отправлено');
+    } catch (error: any) {
       message.error(error.response?.data?.detail || 'Ошибка');
     }
   };
 
-  const handleInternship = async (artifactId: number) => {
+  // Открытие полного текста (см. PartnerDigest.handleRead: окно открывается
+  // синхронно до await, иначе браузер блокирует popup)
+  const handleRead = async (artifactId: number) => {
+    const win = window.open('', '_blank');
     try {
-      await partnerAPI.createRequest({ artifact_id: artifactId, type: 'internship' });
-      message.success('Приглашение на стажировку отправлено');
+      const res = await partnerAPI.getReadAccess(artifactId);
+      if (res.data.url) {
+        if (win) {
+          win.location.href = res.data.url;
+        } else {
+          window.open(res.data.url, '_blank', 'noopener');
+        }
+      } else {
+        win?.close();
+        message.warning('Ссылка на документ не указана');
+      }
     } catch (error: any) {
-      message.error(error.response?.data?.detail || 'Ошибка');
+      win?.close();
+      message.error(error.response?.data?.detail || 'Доступ к тексту ещё не выдан');
     }
   };
 
@@ -110,9 +141,12 @@ const PartnerFavorites: React.FC = () => {
           >
             <ArtifactCard
               artifact={fav.artifact}
+              canRead={fav.artifact.read_policy === 'open'}
+              onRead={handleRead}
               onRequestFullText={handleRequestFullText}
               onInternship={handleInternship}
               onSaveFavorite={handleSaveFavorite}
+              onRemoveFavorite={handleRemoveFavorite}
               isFavorite={true}
               favoriteId={fav.id}
             />

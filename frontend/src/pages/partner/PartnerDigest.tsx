@@ -102,12 +102,47 @@ const PartnerDigest: React.FC = () => {
     );
   };
 
+  // Открытие полного текста: бэкенд отдаёт ссылку на документ, если работа в
+  // открытом доступе или доступ уже выдан по одобренному запросу.
+  // Вкладку открываем синхронно (до await) — иначе браузер заблокирует
+  // window.open как popup, т.к. он окажется вне обработчика клика.
+  const handleRead = async (artifactId: number) => {
+    const win = window.open('', '_blank');
+    try {
+      const res = await partnerAPI.getReadAccess(artifactId);
+      if (res.data.url) {
+        if (win) {
+          win.location.href = res.data.url;
+        } else {
+          window.open(res.data.url, '_blank', 'noopener');
+        }
+      } else {
+        win?.close();
+        message.warning('Ссылка на документ не указана');
+      }
+    } catch (error: any) {
+      win?.close();
+      message.error(error.response?.data?.detail || 'Доступ к тексту ещё не выдан');
+    }
+  };
+
   const handleRequestFullText = async (artifactId: number) => {
     try {
       await partnerAPI.createRequest({ artifact_id: artifactId, type: 'full_text' });
       message.success('Запрос на полный текст отправлен куратору');
     } catch (error: any) {
-      message.error(error.response?.data?.detail || 'Ошибка отправки запроса');
+      const detail: string = error.response?.data?.detail || '';
+      // Текст уже доступен (автор открыл работу или доступ выдан по прошлому
+      // запросу) — это не ошибка: открываем документ и обновляем карточку.
+      if (error.response?.status === 400 && detail.includes('already accessible')) {
+        message.info('Полный текст уже доступен — открываю документ');
+        setEntries(prev =>
+          prev.map(e => (e.artifact.id === artifactId ? { ...e, can_read: true } : e))
+        );
+        await handleRead(artifactId);
+        return;
+      }
+      message.error(detail || 'Ошибка отправки запроса');
     }
   };
 
@@ -211,6 +246,8 @@ const PartnerDigest: React.FC = () => {
             key={entry.artifact.id}
             artifact={entry.artifact}
             relevance={entry.relevance}
+            canRead={entry.can_read}
+            onRead={handleRead}
             onRequestFullText={handleRequestFullText}
             onInternship={handleInternship}
             onSaveFavorite={handleSaveFavorite}

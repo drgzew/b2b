@@ -26,6 +26,27 @@ const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
     return <AdminLayout>{children}</AdminLayout>;
   }
 
+  // Автор попадает сюда только на общих страницах (/profile/*): его кабинет
+  // (/author/*) обёрнут в AuthorLayout на уровне роутера. Показываем то же
+  // меню, чтобы навигация не пропадала.
+  if (role === 'author') {
+    return (
+      <Layout style={{ minHeight: '100vh' }}>
+        <Header
+          title="Кабинет автора"
+          menuItems={[
+            { label: 'Мои работы', path: '/author/dashboard' },
+            { label: 'Запросы', path: '/author/requests' },
+            { label: '💼 Приглашения', path: '/author/internships' },
+          ]}
+        />
+        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', borderRadius: 8 }}>
+          {children}
+        </Content>
+      </Layout>
+    );
+  }
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Header title="Кабинет" menuItems={[]} />

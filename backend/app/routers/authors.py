@@ -61,7 +61,7 @@ def _get_author_or_404(author_id: int, session: Session) -> Author:
 @router.get("/{author_id}", response_model=AuthorRead)
 def get_author(
     author_id: int,
-    user: User = Depends(require_role("curator", "admin", "partner")),
+    user: User = Depends(require_role("curator", "admin", "partner", "author")),
     session: Session = Depends(get_session),
 ):
     """Кликабельный профиль автора — доступен из карточки артефакта.

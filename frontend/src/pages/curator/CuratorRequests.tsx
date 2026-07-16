@@ -117,9 +117,9 @@ const CuratorRequests = () => {
                 r => r.status === "in_progress"
             ).length,
 
-        accepted:
+        approved:
             requests.filter(
-                r => r.status === "accepted"
+                r => r.status === "approved"
             ).length,
 
         rejected:
@@ -127,9 +127,9 @@ const CuratorRequests = () => {
                 r => r.status === "rejected"
             ).length,
 
-        completed:
+        done:
             requests.filter(
-                r => r.status === "completed"
+                r => r.status === "done"
             ).length
 
     };
@@ -259,7 +259,7 @@ const CuratorRequests = () => {
                                 color: "#52c41a"
                             }}
                         >
-                            {statusCounts.completed}
+                            {statusCounts.done + statusCounts.approved}
                         </Typography.Text>
 
                         <br />
@@ -377,9 +377,9 @@ const CuratorRequests = () => {
 
                     {
                         label:
-                            `Принятые (${statusCounts.accepted})`,
+                            `Доступ выдан (${statusCounts.approved})`,
                         value:
-                            "accepted"
+                            "approved"
                     },
 
                     {
@@ -391,9 +391,9 @@ const CuratorRequests = () => {
 
                     {
                         label:
-                            `Завершенные (${statusCounts.completed})`,
+                            `Завершенные (${statusCounts.done})`,
                         value:
-                            "completed"
+                            "done"
                     }
 
                 ]}

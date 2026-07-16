@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Button, Spin, message, Tag, Select, Space } from 'antd';
+import { Card, Typography, Button, Spin, message, Tag, Select } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { authorAPI } from '../../api/author';
 import type { Artifact } from '../../api/types';

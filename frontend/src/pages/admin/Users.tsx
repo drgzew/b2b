@@ -151,11 +151,16 @@ const Users: React.FC = () => {
           {selectedRole === 'author' && (
             <Form.Item
               name="author_id"
-              label="ID автора"
+              label="Автор"
               rules={[{ required: true, message: 'Обязательно для роли «Автор»' }]}
-              extra="Профиль автора создаётся при импорте ВКР/статей парсером, отдельной формы для ручного создания пока нет — укажите id уже существующего профиля."
+              extra="Профиль автора создаётся при импорте ВКР/статей парсером — выберите существующий профиль из списка."
             >
-              <Input type="number" />
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={authors.map(a => ({ value: a.id, label: a.full_name }))}
+                placeholder="Выберите автора"
+              />
             </Form.Item>
           )}
         </Form>

@@ -20,6 +20,7 @@ from ..models import (
     User,
 )
 from ..schemas import (
+    ArtifactShortRead,
     DigestEntry,
     FavoriteCreate,
     FavoriteRead,
@@ -27,6 +28,7 @@ from ..schemas import (
     InternshipRead,
     InternshipStatusUpdate,
     PartnerRead,
+    PartnerShortRead,
     ReadAccessResponse,
     RequestCreate,
     RequestRead,
@@ -198,15 +200,37 @@ def create_request(
             detail="Full text is already accessible, use GET /partner/artifacts/{id}/read",
         )
 
-    req = RequestModel(
-        artifact_id=data.artifact_id,
-        partner_id=partner.id,
-        type=data.type,
+    # Идемпотентность: повторное нажатие кнопки не плодит дубли — если по этой
+    # работе уже есть необработанный запрос того же типа, возвращаем его.
+    req = session.exec(
+        select(RequestModel).where(
+            RequestModel.artifact_id == data.artifact_id,
+            RequestModel.partner_id == partner.id,
+            RequestModel.type == data.type,
+            RequestModel.status.in_(["sent", "in_progress"]),
+        )
+    ).first()
+    if req is None:
+        req = RequestModel(
+            artifact_id=data.artifact_id,
+            partner_id=partner.id,
+            type=data.type,
+        )
+        session.add(req)
+        session.commit()
+        session.refresh(req)
+    # RequestRead ждёт вложенные artifact/partner (как в GET /curator/requests) —
+    # req.dict() отдаёт только плоские колонки и роняет валидацию схемы.
+    return RequestRead(
+        id=req.id,
+        artifact_id=req.artifact_id,
+        partner_id=req.partner_id,
+        artifact=ArtifactShortRead(id=artifact.id, title=artifact.title),
+        partner=PartnerShortRead(id=partner.id, name=partner.name),
+        type=req.type,
+        status=req.status,
+        created_at=req.created_at,
     )
-    session.add(req)
-    session.commit()
-    session.refresh(req)
-    return RequestRead(**req.dict())
 
 
 # --- Стажировки ---

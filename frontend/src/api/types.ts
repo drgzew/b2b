@@ -9,12 +9,14 @@ export type ArtifactType =
     | "talk"
     | "event";
 
+// Статусы запроса — как на бэкенде: approved/rejected ставит решение по
+// full_text (POST /decision), in_progress/done — рабочий процесс остальных.
 export type RequestStatus =
     | "sent"
-    | "accepted"
     | "in_progress"
+    | "approved"
     | "rejected"
-    | "completed";
+    | "done";
 export type RequestType =
     | "full_text"
     | "internship"
