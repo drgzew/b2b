@@ -92,6 +92,7 @@ class Artifact(SQLModel, table=True):
     type: str  # vkr | article | talk | event
     annotation: str
     file_path: Optional[str] = None
+    year: Optional[int] = Field(default=None)  # год публикации
 
     # Решение куратора по артефакту. Заменяет прежнее поле "status" —
     # теперь это единственный источник правды о том, виден ли артефакт партнёрам:

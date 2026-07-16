@@ -395,7 +395,7 @@ def seed(libtheses_path: Optional[str] = None) -> None:
             title = work.get("title", f"ВКР {i+1}")
             authors = work.get("authors", [])
             author_full_name = authors[0] if authors else f"Студент {i+1}"
-            year = work.get("year", 2024)
+            year = work.get("year")
             abstract = work.get("abstract", "")
             institute = work.get("institute", "")
             major = work.get("major")
@@ -410,19 +410,12 @@ def seed(libtheses_path: Optional[str] = None) -> None:
             # Создаём автора
             if author_full_name not in authors_cache:
                 # Генерируем email
-                name_parts = author_full_name.lower().split()
-                if name_parts:
-                    last_name = name_parts[0].replace("ё", "e").replace("й", "i").replace(",", "")
-                else:
-                    last_name = "student"
-                
-                # Убираем недопустимые символы из email
-                last_name = ''.join(c for c in last_name if c.isalpha() or c == '.')
-                
+
                 counter = 1
-                email = f"{last_name}@study.utmn.ru"
+                
+                email = f"stud{str(i + 1).zfill(10)}@study.utmn.ru"
                 while session.exec(select(Author).where(Author.email == email)).first():
-                    email = f"{last_name}{counter}@study.utmn.ru"
+                    email = f"stud{str(i + 1 + counter).zfill(10)}@study.utmn.ru"
                     counter += 1
                 
                 job_status = random.choices(
@@ -461,6 +454,7 @@ def seed(libtheses_path: Optional[str] = None) -> None:
                 type="vkr",
                 annotation=abstract or "Нет аннотации",
                 file_path=source_url or f"https://library.utmn.ru/dl/vkr_{i+1}.pdf",
+                year=year,
                 curator_status="approved",
                 read_policy=read_policy,
                 author_id=author.id,

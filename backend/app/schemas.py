@@ -61,6 +61,7 @@ class ArtifactCreate(SQLModel):
     type: str
     annotation: str
     file_path: Optional[str] = None
+    year: Optional[int] = None
     curator_status: str = "draft"
     read_policy: str = "requires_approval"  # open | requires_approval — запрет по умолчанию
     author_id: Optional[int] = None
@@ -74,6 +75,7 @@ class ArtifactRead(SQLModel):
     type: str
     annotation: str
     file_path: Optional[str]
+    year: Optional[int] = None
     curator_status: str
     read_policy: str  # open | requires_approval
     created_at: datetime
