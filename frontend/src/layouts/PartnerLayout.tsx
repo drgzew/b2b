@@ -11,41 +11,28 @@ interface PartnerLayoutProps {
 }
 
 const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
-  const [partnerName, setPartnerName] = useState<string>('');
+  const [partnerName, setPartnerName] = useState('');
   const [internshipCount, setInternshipCount] = useState(0);
   const [favoriteCount, setFavoriteCount] = useState(0);
 
   useEffect(() => {
-    const fetchPartnerData = async () => {
-      // 1. Получаем имя партнёра (обязательно)
+    const fetchData = async () => {
       try {
-        const partnerResponse = await partnerAPI.getMe();
-        setPartnerName(partnerResponse.data.name);
-      } catch (error) {
-        console.error('Ошибка получения имени партнёра:', error);
-        setPartnerName('Партнёр');
-      }
+        const me = await partnerAPI.getMe();
+        setPartnerName(me.data.name);
+      } catch (e) {}
 
-      // 2. Получаем количество стажировок (если эндпоинт не готов — просто ставим 0)
       try {
-        const internshipsResponse = await partnerAPI.getInternships();
-        setInternshipCount(internshipsResponse.data?.length || 0);
-      } catch (error) {
-        console.warn('Не удалось загрузить стажировки:', error);
-        setInternshipCount(0); // не сбрасываем имя
-      }
+        const internships = await partnerAPI.getInternships();
+        setInternshipCount(internships.data.length);
+      } catch (e) {}
 
-      // 3. Получаем количество избранных (если эндпоинт не готов — просто ставим 0)
       try {
-        const favoritesResponse = await partnerAPI.getFavorites();
-        setFavoriteCount(favoritesResponse.data?.length || 0);
-      } catch (error) {
-        console.warn('Не удалось загрузить избранное:', error);
-        setFavoriteCount(0); // не сбрасываем имя
-      }
+        const favorites = await partnerAPI.getFavorites();
+        setFavoriteCount(favorites.data.length);
+      } catch (e) {}
     };
-
-    fetchPartnerData();
+    fetchData();
   }, []);
 
   const menuItems = [
@@ -58,11 +45,7 @@ const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
           {internshipCount > 0 && (
             <Badge
               count={internshipCount}
-              style={{
-                backgroundColor: '#00AEEF',
-                color: '#fff',
-                marginLeft: '8px',
-              }}
+              style={{ backgroundColor: '#00AEEF', color: '#fff', marginLeft: 8 }}
             />
           )}
         </span>
@@ -76,11 +59,7 @@ const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
           {favoriteCount > 0 && (
             <Badge
               count={favoriteCount}
-              style={{
-                backgroundColor: '#faad14',
-                color: '#fff',
-                marginLeft: '8px',
-              }}
+              style={{ backgroundColor: '#faad14', color: '#fff', marginLeft: 8 }}
             />
           )}
         </span>
@@ -94,15 +73,7 @@ const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Header title={title} menuItems={menuItems} />
-      <Content
-        style={{
-          margin: '24px 16px',
-          padding: 24,
-          minHeight: 280,
-          background: '#fff',
-          borderRadius: 8,
-        }}
-      >
+      <Content style={{ margin: '24px 16px', padding: 24, minHeight: 280, background: '#fff', borderRadius: 8 }}>
         {children ? children : <Outlet />}
       </Content>
     </Layout>

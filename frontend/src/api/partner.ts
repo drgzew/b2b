@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { DigestEntry, Favorite, Internship, Request, Subscription } from './types';
 
 export interface Partner {
   id: number;
@@ -6,80 +7,34 @@ export interface Partner {
   contact_email: string;
 }
 
-export interface Subscription {
-  id: number;
-  name: string;
-  tags: string[];         
+export interface SubscriptionWithDescription extends Subscription {
   description?: string;
-}
-
-export interface Artifact {
-  id: number;
-  title: string;
-  type: 'vkr' | 'article' | 'talk' | 'event';
-  annotation: string;
-  file_path: string | null;
-  curator_status: 'draft' | 'approved' | 'rejected';
-  access_level: 'full' | 'annotation_only' | 'none';
-  author_name: string;
-  created_at: string;
-  tags: { id: number; name: string }[];
-}
-
-export interface DigestEntry {
-  artifact: Artifact;
-  relevance: number;
-}
-
-export interface InternshipRequest {
-  id: number;
-  artifact_id: number;
-  artifact: Artifact;
-  status: 'sent' | 'accepted' | 'in_progress' | 'rejected' | 'completed';
-  created_at: string;
-  student_name?: string;
-  response_date?: string;
-}
-
-export interface FavoriteArtifact {
-  id: number;
-  artifact_id: number;
-  artifact: Artifact;
-  added_at: string;
 }
 
 export const partnerAPI = {
   getMe: () => apiClient.get<Partner>('/partner/me'),
-  // GET /partner/subscriptions
-  getSubscriptions: () => apiClient.get<Subscription[]>('/partner/subscriptions'),
 
-  // GET /partner/subscriptions/{id}/digest
+  getSubscriptions: () => apiClient.get<SubscriptionWithDescription[]>('/partner/subscriptions'),
+
+  replaceSubscriptions: (data: { subscriptions: { name: string; tags: string[]; description?: string }[] }) =>
+    apiClient.put<SubscriptionWithDescription[]>('/partner/subscriptions', data),
+
   getDigest: (subscriptionId: number) =>
     apiClient.get<DigestEntry[]>(`/partner/subscriptions/${subscriptionId}/digest`),
 
-  // POST /partner/requests
+  getReadAccess: (artifactId: number) =>
+    apiClient.get<{ mode: 'redirect' | 'pdf'; url?: string | null }>(`/partner/artifacts/${artifactId}/read`),
+
   createRequest: (data: { artifact_id: number; type: 'full_text' | 'internship' | 'rnd' }) =>
-    apiClient.post('/partner/requests', data),
+    apiClient.post<Request>('/partner/requests', data),
 
-  // PUT /partner/subscriptions — заменить весь набор подписок партнёра
-  replaceSubscriptions: (data: { subscriptions: { name: string; tags: string[] }[] }) =>
-    apiClient.put<Subscription[]>('/partner/subscriptions', data),
+  getFavorites: () => apiClient.get<Favorite[]>('/partner/favorites'),
+  addFavorite: (artifactId: number) => apiClient.post<Favorite>('/partner/favorites', { artifact_id: artifactId }),
+  removeFavorite: (favoriteId: number) => apiClient.delete(`/partner/favorites/${favoriteId}`),
 
-  // GET /partner/internships — получить все приглашения на стажировку
-  getInternships: () => apiClient.get<InternshipRequest[]>('/partner/internships'),
-
-  // PATCH /partner/internships/{id}/status — обновить статус стажировки
+  getInternships: () => apiClient.get<Internship[]>('/partner/internships'),
+  createInternship: (artifactId: number, studentName: string) =>
+    apiClient.post<Internship>('/partner/internships', { artifact_id: artifactId, student_name: studentName }),
   updateInternshipStatus: (internshipId: number, status: string) =>
-    apiClient.patch<InternshipRequest>(`/partner/internships/${internshipId}/status`, { status }),
-
-  // GET /partner/favorites — получить все избранные артефакты
-  getFavorites: () => apiClient.get<FavoriteArtifact[]>('/partner/favorites'),
-
-  // POST /partner/favorites — добавить артефакт в избранное
-  addFavorite: (artifactId: number) =>
-    apiClient.post('/partner/favorites', { artifact_id: artifactId }),
-
-  // DELETE /partner/favorites/{id} — удалить из избранного
-  removeFavorite: (favoriteId: number) =>
-    apiClient.delete(`/partner/favorites/${favoriteId}`),
+    apiClient.patch<Internship>(`/partner/internships/${internshipId}/status`, { status }),
 };

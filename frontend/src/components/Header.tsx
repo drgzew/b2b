@@ -9,11 +9,15 @@ interface HeaderItem {
 interface HeaderProps {
   title?: string;
   menuItems?: HeaderItem[];
-  role?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ title, menuItems = [], role }) => {
+const Header: React.FC<HeaderProps> = ({ title, menuItems = [] }) => {
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/login');
+  };
 
   return (
     <header className="header">
@@ -36,8 +40,7 @@ const Header: React.FC<HeaderProps> = ({ title, menuItems = [], role }) => {
               {item.label}
             </a>
           ))}
-          {role && <span>{role}</span>}
-          <a onClick={() => navigate("/login")}>Выйти</a>
+          <a onClick={handleLogout}>Выйти</a>
         </nav>
       )}
     </header>
