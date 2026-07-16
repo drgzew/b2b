@@ -21,7 +21,18 @@ from typing import Dict, List, Optional
 
 from sqlmodel import Session, delete, select
 
-from .models import Artifact, ArtifactTag, Author, SubscriptionTag, Tag
+from .models import (
+    Artifact,
+    ArtifactTag,
+    Author,
+    DigestItem,
+    Favorite,
+    Internship,
+    PartnerArtifactAccess,
+    Request,
+    SubscriptionTag,
+    Tag,
+)
 from .sso import parse_tumgu_profile
 
 # Старый формат access_level (full|annotation_only|none) — трёхстороннее
@@ -85,9 +96,16 @@ def import_artifacts(artifacts_data: List[Dict], session: Session, wipe: bool = 
 
     if wipe:
         print("Очистка базы данных...")
-        # ArtifactTag/SubscriptionTag — явные модели связки (см. models.py),
-        # используем их вместо текстовых имён таблиц, чтобы не разъезжаться
-        # при переименованиях схемы.
+        # Важно удалить ВСЕ таблицы, у которых есть FK на artifact.id, а не
+        # только artifacttag — иначе DELETE FROM artifact падает по внешнему
+        # ключу, если в базе уже есть избранное/запросы/стажировки/дайджесты
+        # (например, от ранее отработавшего scripts/seed.py). Порядок должен
+        # идти от таблиц-потомков к artifact/tag, а не наоборот.
+        session.execute(delete(DigestItem))
+        session.execute(delete(Request))
+        session.execute(delete(Favorite))
+        session.execute(delete(Internship))
+        session.execute(delete(PartnerArtifactAccess))
         session.execute(delete(SubscriptionTag))
         session.execute(delete(ArtifactTag))
         session.execute(delete(Artifact))
