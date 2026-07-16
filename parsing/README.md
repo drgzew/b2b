@@ -72,9 +72,9 @@ docker-compose up
 ```cmd
 docker-compose exec db pg_isready -U app -d app
 docker exec b2b-backend-1 mkdir -p /data/raw
-docker cp parsing/data/raw/libtheses.json b2b-backend-1:/data/raw/libtheses.json
-docker exec b2b-backend-1 ls -la /data/raw/
-docker compose exec backend python scripts/seed.py --file /data/raw/libtheses.json
+docker cp parsing/data/normalized.json b2b-backend-1:/data/normalized.json
+docker exec b2b-backend-1 ls -la /data/
+docker compose exec backend python scripts/seed.py --file /data/parsing/data/normalized.json
 ```
 
 Проверка функционала:

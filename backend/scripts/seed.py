@@ -1,8 +1,8 @@
 """
-Наполняет БД тестовыми данными для пилота.
+Наполняет БД тестовыми данными из normalized.json.
 Запуск (из контейнера api):
     python scripts/seed.py
-    python scripts/seed.py --file /data/raw/libtheses.json
+    python scripts/seed.py --file /data/normalized.json
 """
 import os
 import sys
@@ -247,8 +247,8 @@ def generate_teachers(count: int = 20) -> List[Dict]:
     return teachers
 
 
-def load_libtheses_data(file_path: str) -> List[Dict]:
-    """Загружает данные из libtheses.json."""
+def load_normalized_data(file_path: str) -> List[Dict]:
+    """Загружает данные из normalized.json."""
     path = Path(file_path)
     
     if not path.exists():
@@ -298,7 +298,7 @@ def map_program_to_tags(program: Optional[str]) -> List[str]:
     return ["информационные системы", "машинное обучение"]
 
 
-def seed(libtheses_path: Optional[str] = None) -> None:
+def seed(normalized_path: Optional[str] = None) -> None:
     """Основная функция наполнения БД."""
     init_db()
 
@@ -323,55 +323,38 @@ def seed(libtheses_path: Optional[str] = None) -> None:
         tags_by_name = {tag.name: tag for tag in session.exec(select(Tag)).all()}
         print(f"   Создано {len(tags_by_name)} тегов")
 
-        # 3. Загружаем данные из libtheses.json
-        libtheses_data = []
+        # 3. Загружаем данные из normalized.json
+        normalized_data = []
         
-        if libtheses_path:
-            libtheses_data = load_libtheses_data(libtheses_path)
+        if normalized_path:
+            normalized_data = load_normalized_data(normalized_path)
         
         # Если путь не указан или файл не найден, пробуем стандартные пути
-        if not libtheses_data:
+        if not normalized_data:
             default_paths = [
-                "data/raw/libtheses.json",
-                "../data/raw/libtheses.json",
-                "/data/raw/libtheses.json",
+                "data/normalized.json",
+                "../data/normalized.json",
+                "/data/normalized.json",
             ]
             for path in default_paths:
-                libtheses_data = load_libtheses_data(path)
-                if libtheses_data:
+                normalized_data = load_normalized_data(path)
+                if normalized_data:
                     break
         
         # Если данных нет, используем демо-данные
-        if not libtheses_data:
-            print("⚠️ Используются демо-данные (3 записи)")
-            libtheses_data = [
-                {
-                    "title": "Оптимизация буровых растворов",
-                    "authors": ["Орлова Анна Сергеевна"],
-                    "year": 2024,
-                    "abstract": "ВКР о снижении затрат на буровые растворы",
-                    "institute": "Школа естественных наук",
-                    "major": "05.03.02 География",
-                },
-                {
-                    "title": "Цифровой двойник насосной станции",
-                    "authors": ["Соколов Дмитрий Алексеевич"],
-                    "year": 2024,
-                    "abstract": "Модель цифрового двойника для мониторинга",
-                    "institute": "Институт математики и компьютерных наук",
-                    "major": "09.03.02 Информационные системы и технологии",
-                },
-                {
-                    "title": "Прогноз спроса в логистике методами ML",
-                    "authors": ["Зайцева Екатерина Владимировна"],
-                    "year": 2024,
-                    "abstract": "Применение ML для прогноза спроса",
-                    "institute": "Институт математики и компьютерных наук",
-                    "major": "02.03.03 Математическое обеспечение",
-                },
-            ]
+        if not normalized_data:
+            print("⚠️ Нет данных для импорта!")
+            return
 
-        print(f"📚 Загружено {len(libtheses_data)} ВКР")
+        print(f"📚 Загружено {len(normalized_data)} артефактов")
+
+        # Считаем статистику по источникам
+        source_counts = {}
+        for work in normalized_data:
+            source = work.get("source", "unknown")
+            source_counts[source] = source_counts.get(source, 0) + 1
+        
+        print(f"   Источники: {source_counts}")
 
         # 4. Генерируем преподавателей
         teachers_data = generate_teachers(20)
@@ -390,14 +373,30 @@ def seed(libtheses_path: Optional[str] = None) -> None:
         print("📚 Создаём авторов и артефакты...")
         authors_cache = {}
         created_artifacts = []
+        skipped = 0
         
-        for i, work in enumerate(libtheses_data):
-            title = work.get("title", f"ВКР {i+1}")
-            authors = work.get("authors", [])
-            author_full_name = authors[0] if authors else f"Студент {i+1}"
+        for i, work in enumerate(normalized_data):
+            title = work.get("title", f"Артефакт {i+1}")
+            author_name = work.get("author_name")
             year = work.get("year")
-            abstract = work.get("abstract", "")
-            institute = work.get("institute", "")
+            annotation = work.get("annotation", "")
+            source = work.get("source", "unknown")
+            
+            # Извлекаем теги
+            tags_data = work.get("tags", [])
+            tag_names = [t.get("name") for t in tags_data if t.get("name")]
+            
+            # Если тегов нет, генерируем на основе источника
+            if not tag_names:
+                if source == "openalex":
+                    tag_names = ["машинное обучение", "Big Data"]
+                elif source == "repotheses":
+                    tag_names = ["информационные системы", "машинное обучение"]
+                else:
+                    tag_names = ["информационные системы"]
+            
+            # Если есть institute и major, используем их
+            institute = work.get("institute")
             major = work.get("major")
             
             # Если major отсутствует, выбираем случайное направление
@@ -406,16 +405,22 @@ def seed(libtheses_path: Optional[str] = None) -> None:
                 print(f"   ⚠️ Для '{title[:30]}...' сгенерировано направление: {major}")
             
             source_url = work.get("source_url", "")
+            artifact_type = work.get("type", "article")
+            
+            # Для OpenAlex статей может не быть автора
+            if not author_name:
+                author_name = f"Автор {i+1}"
+
+            email_prefix = 'author' if source == "openalex" else 'stud'
+            email_postfix = 'utmn.ru' if source == "openalex" else 'study.utmn.ru'
             
             # Создаём автора
-            if author_full_name not in authors_cache:
+            if author_name not in authors_cache:
                 # Генерируем email
-
                 counter = 1
-                
-                email = f"stud{str(i + 1).zfill(10)}@study.utmn.ru"
+                email = f"{email_prefix}{str(i + 1).zfill(10)}@{email_postfix}"
                 while session.exec(select(Author).where(Author.email == email)).first():
-                    email = f"stud{str(i + 1 + counter).zfill(10)}@study.utmn.ru"
+                    email = f"{email_prefix}{str(i + 1 + counter).zfill(10)}@{email_postfix}"
                     counter += 1
                 
                 job_status = random.choices(
@@ -425,37 +430,33 @@ def seed(libtheses_path: Optional[str] = None) -> None:
                 
                 author = Author(
                     email=email,
-                    full_name=author_full_name,
+                    full_name=author_name,
                     program=major,
                     job_status=job_status,
                 )
                 session.add(author)
                 session.flush()
-                authors_cache[author_full_name] = author
-                print(f"   Создан автор: {author_full_name} ({email})")
+                authors_cache[author_name] = author
+                print(f"   Создан автор: {author_name} ({email})")
             
-            author = authors_cache[author_full_name]
+            author = authors_cache[author_name]
             
-            # Теги
-            tag_names = map_program_to_tags(major)
-            all_tags = list(tags_by_name.keys())
-            additional = random.sample(
-                [t for t in all_tags if t not in tag_names],
-                min(random.randint(0, 2), len(all_tags) - len(tag_names))
-            )
-            tag_names.extend(additional)
+            # Ограничиваем количество тегов до 4
             tag_names = list(set(tag_names))[:4]
             
             supervisor = random.choice(list(teachers_cache.values())) if teachers_cache else None
             read_policy = random.choices(["open", "requires_approval"], weights=[0.3, 0.7])[0]
             
+            # Определяем curator_status: для OpenAlex статей сразу approved
+            curator_status = "approved" if source == "openalex" else "draft"
+            
             artifact = Artifact(
                 title=title,
-                type="vkr",
-                annotation=abstract or "Нет аннотации",
-                file_path=source_url or f"https://library.utmn.ru/dl/vkr_{i+1}.pdf",
+                type=artifact_type,
+                annotation=annotation or "Нет аннотации",
+                file_path=source_url or None,
                 year=year,
-                curator_status="approved",
+                curator_status=curator_status,
                 read_policy=read_policy,
                 author_id=author.id,
                 supervisor_id=supervisor.id if supervisor else None,
@@ -463,6 +464,7 @@ def seed(libtheses_path: Optional[str] = None) -> None:
             session.add(artifact)
             session.flush()
             
+            # Привязываем теги
             for tag_name in tag_names:
                 tag = tags_by_name.get(tag_name)
                 if tag:
@@ -472,11 +474,13 @@ def seed(libtheses_path: Optional[str] = None) -> None:
                     )
             
             created_artifacts.append(artifact)
-            if (i + 1) % 10 == 0:
+            if (i + 1) % 50 == 0:
                 print(f"   Создано {i + 1} артефактов...")
         
         session.commit()
         print(f"   Создано {len(authors_cache)} авторов и {len(created_artifacts)} артефактов")
+        if skipped:
+            print(f"   Пропущено: {skipped}")
 
         # 6. Партнёры и подписки
         print("🏢 Создаём партнёров и подписки...")
@@ -578,8 +582,8 @@ def seed(libtheses_path: Optional[str] = None) -> None:
         print("✅ БАЗА ДАННЫХ УСПЕШНО НАПОЛНЕНА!")
         print("=" * 60)
         print(f"📊 Статистика:")
-        print(f"   • {artifact_count} артефактов (ВКР)")
-        print(f"   • {author_count} авторов (студентов)")
+        print(f"   • {artifact_count} артефактов")
+        print(f"   • {author_count} авторов")
         print(f"   • {teacher_count} преподавателей")
         print(f"   • {tag_count} тегов")
         print(f"   • {len(partners)} партнёров")
@@ -603,12 +607,12 @@ def seed(libtheses_path: Optional[str] = None) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Наполнение БД тестовыми данными")
+    parser = argparse.ArgumentParser(description="Наполнение БД данными из normalized.json")
     parser.add_argument(
         "--file",
         type=str,
         default=None,
-        help="Путь к файлу libtheses.json"
+        help="Путь к файлу normalized.json"
     )
     args = parser.parse_args()
     
