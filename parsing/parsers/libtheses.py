@@ -315,7 +315,6 @@ def parse_theses(limit=None):
         
         for i, link in enumerate(detail_links, 1):
             if limit and len(all_theses) >= limit:
-                print(f"\nДостигнут лимит в {limit} работ. Останавливаем сбор.")
                 break
             
             print(f"  [{i}/{len(detail_links)}] Обработка работы...")
@@ -393,9 +392,9 @@ def main():
         json.dump(theses, f, ensure_ascii=False, indent=2)
     
     print("\n" + "="*60)
-    print(f"ГОТОВО! Собрано {len(theses)} записей.")
+    print(f"Собрано {len(theses)} записей.")
     print(f"Время выполнения: {elapsed_time:.2f} секунд")
-    print(f"Результат сохранен в {args.output}")
+    print(f"Результат сохранён в {args.output}")
     print("="*60)
 
 if __name__ == "__main__":
