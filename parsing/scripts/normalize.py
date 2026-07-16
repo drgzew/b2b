@@ -84,6 +84,12 @@ def normalize_libtheses_work(work: Dict, index: int) -> Dict:
     access_level = determine_access_level(work)
     authors = work.get('authors', [])
     author_name = ", ".join(authors) if authors else None
+    
+    # Извлекаем темы из поля "themes" и используем их как ключевые слова
+    themes = work.get('themes', [])
+    # Нормализуем темы: убираем дубликаты, ограничиваем количество
+    normalized_keywords = normalize_keywords(themes, max_keywords=10)
+    tags = [{"name": tag} for tag in normalized_keywords] if normalized_keywords else []
 
     artifact = {
         "id": None,  # ID is up to database
@@ -95,7 +101,7 @@ def normalize_libtheses_work(work: Dict, index: int) -> Dict:
         "author_name": author_name,
         "created_at": datetime.utcnow().isoformat(),
         "embedding": None,  # fill it later
-        "tags": [],  # there are no keywords defined by the library
+        "tags": tags,  # темы из библиотеки как теги
         "doi": None,  # У ВКР нет DOI
         "source_url": work.get('source_url'),
         "year": work.get('year'),

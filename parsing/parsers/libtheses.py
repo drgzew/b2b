@@ -100,8 +100,8 @@ def extract_title_parts(full_title):
             ': магистерская диссертация',
             ': дипломная работа',
             ': выпускная квалификационная работа магистра',
-            ': выпускная квалифицированная работа',  # <-- ДОБАВЛЕНО
-            ': выпускная квалифицированная работа (бакалаврская работа)',  # <-- ДОБАВЛЕНО
+            ': выпускная квалифицированная работа',
+            ': выпускная квалифицированная работа (бакалаврская работа)',
         ]
         for suffix in suffixes:
             if suffix in title_ru:
@@ -167,6 +167,63 @@ def extract_abstract_parts(soup):
             break
     
     return abstract_ru, abstract_en
+
+def extract_themes(soup):
+    """Извлекает тематику из блока 'Тематика' на странице."""
+    themes = []
+    
+    # Ищем блок с тематикой
+    # На странице тематика находится в блоке <p> с <span class="title">Тематика:</span>
+    description_div = soup.find('div', id='description')
+    if description_div:
+        # Ищем все параграфы внутри description
+        for p in description_div.find_all('p'):
+            # Ищем span с текстом "Тематика:"
+            title_span = p.find('span', class_='title')
+            if title_span and 'Тематика:' in title_span.get_text():
+                # Нашли блок с тематикой
+                # Все ссылки внутри этого параграфа - это темы
+                for keyword_span in p.find_all('span', class_='keyword'):
+                    # Извлекаем текст из ссылки внутри keyword
+                    link = keyword_span.find('a')
+                    if link:
+                        theme_text = link.get_text(strip=True)
+                        if theme_text:
+                            themes.append(theme_text)
+                    else:
+                        # Если ссылки нет, берем текст напрямую
+                        theme_text = keyword_span.get_text(strip=True)
+                        # Убираем точку с запятой в конце
+                        if theme_text.endswith(';'):
+                            theme_text = theme_text[:-1]
+                        if theme_text:
+                            themes.append(theme_text)
+                break
+    
+    # Если не нашли через описанный выше способ, пробуем альтернативный
+    if not themes:
+        # Ищем все элементы с классом 'keyword' внутри 'description'
+        description_div = soup.find('div', id='description')
+        if description_div:
+            # Находим блок с тематикой по тексту
+            all_p = description_div.find_all('p')
+            for p in all_p:
+                if 'Тематика:' in p.get_text():
+                    for keyword_span in p.find_all('span', class_='keyword'):
+                        link = keyword_span.find('a')
+                        if link:
+                            theme_text = link.get_text(strip=True)
+                            if theme_text:
+                                themes.append(theme_text)
+                        else:
+                            theme_text = keyword_span.get_text(strip=True)
+                            if theme_text.endswith(';'):
+                                theme_text = theme_text[:-1]
+                            if theme_text:
+                                themes.append(theme_text)
+                    break
+    
+    return themes
 
 def extract_institute_and_major(title_text):
     """Извлекает институт и направление подготовки из заголовка."""
@@ -248,7 +305,8 @@ def parse_detail_page(detail_url):
         "abstract_en": None,
         "source_url": detail_url,
         "institute": None,
-        "major": None
+        "major": None,
+        "themes": []
     }
 
     # --- Извлечение названия ---
@@ -303,6 +361,10 @@ def parse_detail_page(detail_url):
     abstract_ru, abstract_en = extract_abstract_parts(soup)
     data["abstract"] = abstract_ru
     data["abstract_en"] = abstract_en
+
+    # --- Извлечение тематики ---
+    themes = extract_themes(soup)
+    data["themes"] = themes
 
     return data
 
@@ -407,6 +469,7 @@ def parse_theses(limit=None):
                 print(f"      Год: {thesis_data['year']}")
                 print(f"      Автор: {thesis_data['authors'][0] if thesis_data['authors'] else 'Неизвестен'}")
                 print(f"      Институт: {thesis_data['institute'] or 'Не указан'}")
+                print(f"      Тем: {len(thesis_data.get('themes', []))}")
             else:
                 print(f"    ✗ Не удалось спарсить работу по ссылке {link}")
             

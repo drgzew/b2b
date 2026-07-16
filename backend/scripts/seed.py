@@ -12,6 +12,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional
+import random
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -75,62 +76,151 @@ REAL_PROGRAMS = [
 ]
 
 # ============================================================
-# ТЕГИ
+# ТЕМЫ С ТЭГАМИ
 # ============================================================
 TOPICS = [
     {
         "id": 1,
-        "name": "Нефтегазовые технологии",
-        "description": "Исследования в области добычи и моделирования месторождений",
+        "name": "Искусственный интеллект и машинное обучение",
+        "description": "AI, машинное обучение, нейросети и интеллектуальные системы",
         "tags": [
-            {"id": 1, "name": "нефть"},
-            {"id": 2, "name": "газ"},
-            {"id": 3, "name": "моделирование"},
-            {"id": 4, "name": "геология"},
-            {"id": 5, "name": "3D-модель"},
-            {"id": 21, "name": "газовая промышленность"},
-            {"id": 22, "name": "цифровой двойник"},
-            {"id": 23, "name": "сейсмика"},
-            {"id": 24, "name": "бурение"},
+            {"id": 1, "name": "AI"},
+            {"id": 2, "name": "машинное обучение"},
+            {"id": 3, "name": "нейросети"},
+            {"id": 4, "name": "NLP"},
+            {"id": 5, "name": "Big Data"},
+            {"id": 6, "name": "computer vision"},
+            # Удален дублирующийся тег "информационные системы" (был id=7)
         ],
     },
     {
         "id": 2,
-        "name": "Искусственный интеллект",
-        "description": "AI, машинное обучение и интеллектуальные системы",
+        "name": "Нефтегазовые технологии",
+        "description": "Добыча, переработка и моделирование в нефтегазовой отрасли",
         "tags": [
-            {"id": 6, "name": "AI"},
-            {"id": 7, "name": "машинное обучение"},
-            {"id": 8, "name": "нейросети"},
-            {"id": 9, "name": "NLP"},
-            {"id": 10, "name": "Big Data"},
-            {"id": 25, "name": "computer vision"},
+            {"id": 8, "name": "нефть"},
+            {"id": 9, "name": "газ"},
+            {"id": 10, "name": "бурение"},
+            {"id": 11, "name": "цифровой двойник"},
+            {"id": 12, "name": "моделирование"},
+            {"id": 13, "name": "геология"},
+            {"id": 14, "name": "газовая промышленность"},
+            {"id": 15, "name": "нефтепродукты"},
+            {"id": 16, "name": "нефтешлам"},
         ],
     },
     {
         "id": 3,
-        "name": "Информационные технологии",
-        "description": "Разработка программных и информационных систем",
+        "name": "Информационные технологии и разработка",
+        "description": "Разработка ПО, веб-технологии, информационная безопасность",
         "tags": [
-            {"id": 11, "name": "React"},
-            {"id": 12, "name": "Backend"},
-            {"id": 13, "name": "Python"},
-            {"id": 28, "name": "API"},
-            {"id": 31, "name": "информационные системы"},
-            {"id": 32, "name": "кибербезопасность"},
-            {"id": 33, "name": "сети"},
+            {"id": 17, "name": "Python"},
+            {"id": 18, "name": "React"},
+            {"id": 19, "name": "Backend"},  # Оставляем один Backend
+            # Удален дублирующийся Backend (был id=24)
+            {"id": 20, "name": "API"},
+            {"id": 21, "name": "сети"},
+            {"id": 22, "name": "информационные системы"},  # Теперь один тег с этим именем
+            {"id": 23, "name": "кибербезопасность"},
         ],
     },
     {
         "id": 4,
-        "name": "Экология и энергетика",
-        "description": "Экологические исследования и новые источники энергии",
+        "name": "Экология и природопользование",
+        "description": "Экологические исследования, охрана природы и устойчивое развитие",
         "tags": [
-            {"id": 14, "name": "экология"},
-            {"id": 15, "name": "очистка воды"},
-            {"id": 16, "name": "энергетика"},
-            {"id": 17, "name": "наноматериалы"},
-            {"id": 29, "name": "возобновляемая энергетика"},
+            {"id": 25, "name": "экология"},
+            {"id": 26, "name": "очистка воды"},
+            {"id": 27, "name": "возобновляемая энергетика"},
+            {"id": 28, "name": "гидрология"},
+            {"id": 29, "name": "растительность"},
+            {"id": 30, "name": "биомасса"},
+            {"id": 31, "name": "органическое вещество"},
+            {"id": 32, "name": "тяжёлые металлы"},
+            {"id": 33, "name": "радиоактивность"},
+        ],
+    },
+    {
+        "id": 5,
+        "name": "Лингвистика и филология",
+        "description": "Изучение языка, текста, дискурса и коммуникации",
+        "tags": [
+            {"id": 34, "name": "русский язык"},
+            {"id": 35, "name": "языкознание"},
+            {"id": 36, "name": "лексика"},
+            {"id": 37, "name": "фразеологизмы"},
+            {"id": 38, "name": "семантика"},
+            {"id": 39, "name": "лингвистика"},
+            {"id": 40, "name": "гастрономический дискурс"},
+            {"id": 41, "name": "лексические единицы"},
+        ],
+    },
+    {
+        "id": 6,
+        "name": "Педагогика и образование",
+        "description": "Методика преподавания, педагогические технологии и образование",
+        "tags": [
+            {"id": 42, "name": "образование"},
+            {"id": 43, "name": "педагогика"},
+            {"id": 44, "name": "методика"},
+            {"id": 45, "name": "функциональная грамотность"},
+            {"id": 46, "name": "универсальные учебные действия"},
+            {"id": 47, "name": "педагогические технологии"},
+            {"id": 48, "name": "школьная программа"},
+            {"id": 49, "name": "уроки литературы"},
+        ],
+    },
+    {
+        "id": 7,
+        "name": "Экономика и финансы",
+        "description": "Экономические исследования, финансы, управление и инвестиции",
+        "tags": [
+            {"id": 50, "name": "экономика"},
+            {"id": 51, "name": "финансы"},
+            {"id": 52, "name": "инвестиции"},
+            {"id": 53, "name": "управление"},
+            {"id": 54, "name": "бюджет"},
+            {"id": 55, "name": "финансовые результаты"},
+            {"id": 56, "name": "финансовая устойчивость"},
+        ],
+    },
+    {
+        "id": 8,
+        "name": "Физическая культура и спорт",
+        "description": "Спортивные игры, физическая подготовка и здоровый образ жизни",
+        "tags": [
+            {"id": 57, "name": "физическая культура"},
+            {"id": 58, "name": "спорт"},
+            {"id": 59, "name": "волейбол"},
+            {"id": 60, "name": "баскетбол"},
+            {"id": 61, "name": "тренировка"},
+            {"id": 62, "name": "физическая подготовка"},
+            {"id": 63, "name": "лыжный спорт"},
+        ],
+    },
+    {
+        "id": 9,
+        "name": "Юриспруденция и право",
+        "description": "Правовые исследования, гражданское право и правовое регулирование",
+        "tags": [
+            {"id": 64, "name": "юриспруденция"},
+            {"id": 65, "name": "правовое регулирование"},
+            {"id": 66, "name": "право"},
+            {"id": 67, "name": "гражданское право"},
+            {"id": 68, "name": "законодательство"},
+        ],
+    },
+    {
+        "id": 10,
+        "name": "Общая наука и исследования",
+        "description": "Междисциплинарные и общенаучные исследования",
+        "tags": [
+            {"id": 69, "name": "исследование"},
+            {"id": 70, "name": "анализ"},
+            {"id": 71, "name": "психология"},
+            {"id": 72, "name": "история"},
+            {"id": 73, "name": "культурология"},
+            {"id": 74, "name": "социология"},
         ],
     },
 ]
@@ -144,8 +234,8 @@ PARTNERS = [
         "contact_email": "rnd@gpn-demo.ru",
         "login_email": "gpn@demo.ru",
         "subscriptions": [
-            {"topic_id": 1, "name": "Нефтегазовые технологии"},
-            {"topic_id": 2, "name": "Искусственный интеллект"},
+            {"topic_id": 2, "name": "Нефтегазовые технологии"},
+            {"topic_id": 1, "name": "Искусственный интеллект и машинное обучение"},
         ],
     },
     {
@@ -153,8 +243,8 @@ PARTNERS = [
         "contact_email": "it@yandex-demo.ru",
         "login_email": "yandex@demo.ru",
         "subscriptions": [
-            {"topic_id": 2, "name": "Искусственный интеллект"},
-            {"topic_id": 3, "name": "Информационные технологии"},
+            {"topic_id": 1, "name": "Искусственный интеллект и машинное обучение"},
+            {"topic_id": 3, "name": "Информационные технологии и разработка"},
         ],
     },
     {
@@ -162,8 +252,26 @@ PARTNERS = [
         "contact_email": "eco@eco-demo.ru",
         "login_email": "eco@demo.ru",
         "subscriptions": [
-            {"topic_id": 4, "name": "Экология и энергетика"},
-            {"topic_id": 1, "name": "Нефтегазовые технологии"},
+            {"topic_id": 4, "name": "Экология и природопользование"},
+            {"topic_id": 2, "name": "Нефтегазовые технологии"},
+        ],
+    },
+    {
+        "name": "Центр педагогических инноваций",
+        "contact_email": "edu@edu-demo.ru",
+        "login_email": "edu@demo.ru",
+        "subscriptions": [
+            {"topic_id": 6, "name": "Педагогика и образование"},
+            {"topic_id": 1, "name": "Искусственный интеллект и машинное обучение"},
+        ],
+    },
+    {
+        "name": "ЛингвоПроект",
+        "contact_email": "lingua@lingua-demo.ru",
+        "login_email": "lingua@demo.ru",
+        "subscriptions": [
+            {"topic_id": 5, "name": "Лингвистика и филология"},
+            {"topic_id": 1, "name": "Искусственный интеллект и машинное обучение"},
         ],
     },
 ]
@@ -252,50 +360,129 @@ def load_normalized_data(file_path: str) -> List[Dict]:
     path = Path(file_path)
     
     if not path.exists():
-        print(f"❌ Файл {path} не найден")
+        print(f"Файл {path} не найден")
         return []
     
-    print(f"📂 Загружаем данные из {path}")
+    print(f"Загружаем данные из {path}")
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
     if isinstance(data, list):
-        print(f"   Загружено {len(data)} записей")
+        print(f"Загружено {len(data)} записей")
         return data
     else:
         print(f"⚠️ Неверный формат данных в {path}")
         return []
 
 
-def map_program_to_tags(program: Optional[str]) -> List[str]:
-    """Маппинг направления подготовки на теги."""
-    if not program:
-        return ["информационные системы", "машинное обучение"]
-    
-    program_to_tags = {
-        "нефтегаз": ["нефть", "газ", "бурение"],
-        "информационные": ["информационные системы", "Python", "кибербезопасность"],
-        "математическое": ["машинное обучение", "Big Data", "Python"],
-        "картография": ["3D-модель", "геология", "моделирование"],
-        "экология": ["экология", "очистка воды", "возобновляемая энергетика"],
-        "химия": ["наноматериалы", "экология", "очистка воды"],
-        "физика": ["энергетика", "наноматериалы", "моделирование"],
-        "журналистика": ["NLP", "AI", "информационные системы"],
-        "психология": ["AI", "Big Data", "информационные системы"],
-        "юриспруденция": ["информационные системы", "кибербезопасность"],
-        "менеджмент": ["Big Data", "информационные системы", "цифровой двойник"],
-        "экономика": ["Big Data", "информационные системы"],
-        "педагогика": ["информационные системы", "AI"],
-        "робототехника": ["AI", "машинное обучение", "моделирование"],
-        "безопасность": ["кибербезопасность", "информационные системы"],
+def map_tags_to_topic(tag_name: str) -> List[int]:
+    """Определяет, к каким темам относится тег."""
+    tag_to_topic = {
+        # Искусственный интеллект и машинное обучение
+        "AI": [1],
+        "машинное обучение": [1],
+        "нейросети": [1],
+        "NLP": [1],
+        "Big Data": [1],
+        "computer vision": [1],
+        "информационные системы": [1, 3],
+        
+        # Нефтегазовые технологии
+        "нефть": [2],
+        "газ": [2],
+        "бурение": [2],
+        "цифровой двойник": [2],
+        "моделирование": [2],
+        "геология": [2],
+        "газовая промышленность": [2],
+        "нефтепродукты": [2],
+        "нефтешлам": [2],
+        "сейсмика": [2],
+        "3D-модель": [2],
+        
+        # Информационные технологии и разработка
+        "Python": [3],
+        "React": [3],
+        "Backend": [3],
+        "API": [3],
+        "сети": [3],
+        "кибербезопасность": [3],
+        
+        # Экология и природопользование
+        "экология": [4],
+        "очистка воды": [4],
+        "возобновляемая энергетика": [4],
+        "гидрология": [4],
+        "растительность": [4],
+        "биомасса": [4],
+        "органическое вещество": [4],
+        "тяжёлые металлы": [4],
+        "радиоактивность": [4],
+        "энергетика": [4],
+        "наноматериалы": [4],
+        
+        # Лингвистика и филология
+        "русский язык": [5],
+        "языкознание": [5],
+        "лексика": [5],
+        "фразеологизмы": [5],
+        "семантика": [5],
+        "лингвистика": [5],
+        "гастрономический дискурс": [5],
+        "лексические единицы": [5],
+        "филология": [5],
+        
+        # Педагогика и образование
+        "образование": [6],
+        "педагогика": [6],
+        "методика": [6],
+        "функциональная грамотность": [6],
+        "универсальные учебные действия": [6],
+        "педагогические технологии": [6],
+        "школьная программа": [6],
+        "уроки литературы": [6],
+        "уроки русского языка": [6],
+        
+        # Экономика и финансы
+        "экономика": [7],
+        "финансы": [7],
+        "инвестиции": [7],
+        "управление": [7],
+        "бюджет": [7],
+        "финансовые результаты": [7],
+        "финансовая устойчивость": [7],
+        "финансирование": [7],
+        
+        # Физическая культура и спорт
+        "физическая культура": [8],
+        "спорт": [8],
+        "волейбол": [8],
+        "баскетбол": [8],
+        "тренировка": [8],
+        "физическая подготовка": [8],
+        "лыжный спорт": [8],
+        "спортивные игры": [8],
+        "спортсмены": [8],
+        
+        # Юриспруденция и право
+        "юриспруденция": [9],
+        "правовое регулирование": [9],
+        "право": [9],
+        "гражданское право": [9],
+        "законодательство": [9],
+        
+        # Общая наука и исследования
+        "исследование": [10],
+        "анализ": [10],
+        "психология": [10],
+        "история": [10],
+        "культурология": [10],
+        "социология": [10],
+        "литературоведение": [10],
+        "литературная критика": [10],
     }
     
-    program_lower = program.lower()
-    for key, tags in program_to_tags.items():
-        if key in program_lower:
-            return tags[:3]
-    
-    return ["информационные системы", "машинное обучение"]
+    return tag_to_topic.get(tag_name, [])
 
 
 def seed(normalized_path: Optional[str] = None) -> None:
@@ -304,31 +491,33 @@ def seed(normalized_path: Optional[str] = None) -> None:
 
     with Session(engine) as session:
         # 1. Очистка
-        print("🗑️ Очистка базы данных...")
+        print("Очистка базы данных...")
         session.execute(text("""
             TRUNCATE TABLE digestitem, request, artifacttag, subscriptiontag, 
             artifact, subscription, partner, "user", author, teacher, 
             favorite, internship CASCADE;
         """))
         session.commit()
-        print("✅ База данных очищена")
+        print("База данных очищена")
 
-        # 2. Создаём теги
-        print("🏷️ Создаём теги...")
+        # 2. Создаём теги и маппинг тегов по темам
+        print("Создаём теги...")
+        tag_names = set()
         for topic in TOPICS:
             for tag_data in topic["tags"]:
+                tag_names.add(tag_data["name"])
                 tag = Tag(id=tag_data["id"], name=tag_data["name"])
                 session.merge(tag)
         session.commit()
         tags_by_name = {tag.name: tag for tag in session.exec(select(Tag)).all()}
-        print(f"   Создано {len(tags_by_name)} тегов")
+        print(f"Создано {len(tags_by_name)} тегов")
 
         # 3. Загружаем данные из normalized.json
         normalized_data = []
-        
+
         if normalized_path:
             normalized_data = load_normalized_data(normalized_path)
-        
+
         # Если путь не указан или файл не найден, пробуем стандартные пути
         if not normalized_data:
             default_paths = [
@@ -340,101 +529,109 @@ def seed(normalized_path: Optional[str] = None) -> None:
                 normalized_data = load_normalized_data(path)
                 if normalized_data:
                     break
-        
-        # Если данных нет, используем демо-данные
+
         if not normalized_data:
-            print("⚠️ Нет данных для импорта!")
+            print("Нет данных для импорта!")
             return
 
-        print(f"📚 Загружено {len(normalized_data)} артефактов")
+        print(f"Загружено {len(normalized_data)} артефактов")
 
-        # Считаем статистику по источникам
         source_counts = {}
         for work in normalized_data:
             source = work.get("source", "unknown")
             source_counts[source] = source_counts.get(source, 0) + 1
-        
-        print(f"   Источники: {source_counts}")
+
+        print(f"Источники: {source_counts}")
 
         # 4. Генерируем преподавателей
         teachers_data = generate_teachers(20)
         teachers_cache = {}
-        
-        print("👨‍🏫 Создаём преподавателей...")
+
+        print("Создаём преподавателей...")
         for t_data in teachers_data:
             teacher = Teacher(**t_data)
             session.add(teacher)
             session.flush()
             teachers_cache[t_data["full_name"]] = teacher
         session.commit()
-        print(f"   Создано {len(teachers_cache)} преподавателей")
+        print(f"Создано {len(teachers_cache)} преподавателей")
 
         # 5. Создаём авторов и артефакты
-        print("📚 Создаём авторов и артефакты...")
+        print("Создаём авторов и артефакты...")
         authors_cache = {}
         created_artifacts = []
         skipped = 0
 
         author_emails, stud_emails = {}, {}
-        
+
+        # Создаём маппинг тегов для быстрого доступа
+        tag_id_to_topic_ids = {}
+        for tag_name, tag in tags_by_name.items():
+            topic_ids = map_tags_to_topic(tag_name)
+            if topic_ids:
+                tag_id_to_topic_ids[tag.id] = topic_ids
+
         for i, work in enumerate(normalized_data):
             title = work.get("title", f"Артефакт {i+1}")
             author_name = work.get("author_name")
             year = work.get("year")
             annotation = work.get("annotation", "")
             source = work.get("source", "unknown")
-            
+
             # Извлекаем теги
             tags_data = work.get("tags", [])
             tag_names = [t.get("name") for t in tags_data if t.get("name")]
+
+            # Дополнительные теги из ключевых слов (для статей OpenAlex)
+            if source == "openalex" and not tag_names:
+                tag_names = ["информационные системы", "машинное обучение"]
             
-            # Если тегов нет, генерируем на основе источника
-            if not tag_names:
-                if source == "openalex":
-                    tag_names = ["машинное обучение", "Big Data"]
-                elif source == "repotheses":
-                    tag_names = ["информационные системы", "машинное обучение"]
-                else:
-                    tag_names = ["информационные системы"]
-            
-            # Если есть institute и major, используем их
+            # Ограничиваем количество тегов до 5
+            tag_names = list(set(tag_names))[:5]
+
             institute = work.get("institute")
             major = work.get("major")
             
-            # Если major отсутствует, выбираем случайное направление
-            if not major:
+            if not major and source == "utmnlib":
+                # Для ВКР из библиотеки пытаемся извлечь из institute
+                if "компьютерных" in str(institute).lower():
+                    major = "09.03.02 Информационные системы и технологии"
+                elif "нефти" in str(institute).lower() or "геологии" in str(institute).lower():
+                    major = "05.03.06 Экология и природопользование"
+                elif "физической культуры" in str(institute).lower():
+                    major = "49.03.01 Физическая культура"
+                else:
+                    major = random.choice(REAL_PROGRAMS)
+            elif not major:
                 major = random.choice(REAL_PROGRAMS)
-                print(f"   ⚠️ Для '{title[:30]}...' сгенерировано направление: {major}")
-            
+
             source_url = work.get("source_url", "")
             artifact_type = work.get("type", "article")
-            
+
             # Для OpenAlex статей может не быть автора
             if not author_name:
                 author_name = f"Автор {i+1}"
 
             email_prefix = 'author' if source == "openalex" else 'stud'
             email_postfix = 'utmn.ru' if source == "openalex" else 'study.utmn.ru'
-            
-            # Создаём автора
+
             if author_name not in authors_cache:
-                # Генерируем email
                 counter = 1
                 email = f"{email_prefix}{str(i + 1).zfill(10)}@{email_postfix}"
                 while session.exec(select(Author).where(Author.email == email)).first():
                     email = f"{email_prefix}{str(i + 1 + counter).zfill(10)}@{email_postfix}"
                     counter += 1
-                
+
                 if source == "openalex":
                     author_emails[author_name] = email
                 else:
                     stud_emails[author_name] = email
-                
+
                 job_status = random.choices(
                     ["searching", "employed", "not_searching"],
                     weights=[0.5, 0.3, 0.2]
                 )[0]
-                
+
                 author = Author(
                     email=email,
                     full_name=author_name,
@@ -444,19 +641,16 @@ def seed(normalized_path: Optional[str] = None) -> None:
                 session.add(author)
                 session.flush()
                 authors_cache[author_name] = author
-                print(f"   Создан автор: {author_name} ({email})")
-            
+
             author = authors_cache[author_name]
-            
-            # Ограничиваем количество тегов до 4
-            tag_names = list(set(tag_names))[:4]
-            
+
             supervisor = random.choice(list(teachers_cache.values())) if teachers_cache else None
             read_policy = random.choices(["open", "requires_approval"], weights=[0.3, 0.7])[0]
-            
+
             # Определяем curator_status: для OpenAlex статей сразу approved
-            curator_status = "approved" if source == "openalex" else "draft"
-            
+            # curator_status = "approved" if source == "openalex" else "draft"
+            curator_status = "draft" if random.randint(1, 10) == 5 else "approved"
+
             artifact = Artifact(
                 title=title,
                 type=artifact_type,
@@ -470,7 +664,7 @@ def seed(normalized_path: Optional[str] = None) -> None:
             )
             session.add(artifact)
             session.flush()
-            
+
             # Привязываем теги
             for tag_name in tag_names:
                 tag = tags_by_name.get(tag_name)
@@ -479,18 +673,18 @@ def seed(normalized_path: Optional[str] = None) -> None:
                         text("INSERT INTO artifacttag (artifact_id, tag_id) VALUES (:a, :t) ON CONFLICT DO NOTHING"),
                         {"a": artifact.id, "t": tag.id}
                     )
-            
+
             created_artifacts.append(artifact)
             if (i + 1) % 50 == 0:
                 print(f"   Создано {i + 1} артефактов...")
-        
+
         session.commit()
         print(f"   Создано {len(authors_cache)} авторов и {len(created_artifacts)} артефактов")
         if skipped:
             print(f"   Пропущено: {skipped}")
 
         # 6. Партнёры и подписки
-        print("🏢 Создаём партнёров и подписки...")
+        print("Создаём партнёров и подписки...")
         partners = {}
         subscriptions_list = []
 
@@ -525,12 +719,12 @@ def seed(normalized_path: Optional[str] = None) -> None:
                     )
             session.commit()
 
-        print(f"   Создано {len(partners)} партнёров и {len(subscriptions_list)} подписок")
+        print(f"Создано {len(partners)} партнёров и {len(subscriptions_list)} подписок")
 
         # 7. Пользователи
-        print("👤 Создаём пользователей...")
+        print("Создаём пользователей...")
         users = []
-        
+
         for login_email, partner in partners.items():
             users.append(
                 User(
@@ -540,14 +734,14 @@ def seed(normalized_path: Optional[str] = None) -> None:
                     partner_id=partner.id,
                 )
             )
-        
+
         users.append(
             User(email="curator@demo.ru", password_hash=hash_password("pass123"), role="curator")
         )
         users.append(
             User(email="admin@demo.ru", password_hash=hash_password("pass123"), role="admin")
         )
-        
+
         for author in authors_cache.values():
             users.append(
                 User(
@@ -557,18 +751,18 @@ def seed(normalized_path: Optional[str] = None) -> None:
                     author_id=author.id,
                 )
             )
-        
+
         session.add_all(users)
         session.commit()
-        print(f"   Создано {len(users)} пользователей")
+        print(f"Создано {len(users)} пользователей")
 
         # 8. Избранное
-        print("⭐ Создаём избранное...")
+        print("Создаём избранное...")
         if created_artifacts:
             gpn = partners.get("gpn@demo.ru")
             yandex = partners.get("yandex@demo.ru")
             eco = partners.get("eco@demo.ru")
-            
+
             if gpn and len(created_artifacts) >= 1:
                 session.add(Favorite(artifact_id=created_artifacts[0].id, partner_id=gpn.id))
             if yandex and len(created_artifacts) >= 2:
@@ -586,7 +780,7 @@ def seed(normalized_path: Optional[str] = None) -> None:
         tag_count = session.query(Tag).count()
 
         print("\n" + "=" * 60)
-        print("База данных успешно наполнена.")
+        print("База данных успешно заполнена.")
         print("=" * 60)
         print(f"Статистика:")
         print(f"   • {artifact_count} артефактов")
@@ -605,7 +799,7 @@ def seed(normalized_path: Optional[str] = None) -> None:
         print("     curator@demo.ru / pass123")
         print("   Админ:")
         print("     admin@demo.ru / pass123")
-        print("   Преподователи:")
+        print("   Преподаватели:")
         for data in teachers_data:
             print(f"     {data['full_name']}: {data['email']} / pass123")
         print("   Авторы статей:")
