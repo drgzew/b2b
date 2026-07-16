@@ -11,6 +11,7 @@ const AuthorDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [jobStatus, setJobStatus] = useState<string>('');
+  const [authorName, setAuthorName] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -21,6 +22,7 @@ const AuthorDashboard: React.FC = () => {
     try {
       const meRes = await authorAPI.getMe();
       setJobStatus(meRes.data.job_status);
+      setAuthorName(meRes.data.full_name);
       const artsRes = await authorAPI.getArtifacts();
       setArtifacts(artsRes.data || []);
     } catch (error) {
@@ -60,7 +62,7 @@ const AuthorDashboard: React.FC = () => {
 
   return (
     <div className="page-container">
-      <Title level={4}>Кабинет автора</Title>
+      <Title level={4}>Кабинет автора{authorName ? ` — ${authorName}` : ''}</Title>
 
       <Card style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
