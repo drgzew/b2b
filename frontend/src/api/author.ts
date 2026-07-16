@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Artifact, Author, AuthorRequest, Request } from './types';
+import type { Artifact, Author, AuthorRequest, Internship } from './types';
 
 export const authorAPI = {
   getMe: () => apiClient.get<Author>('/author/me'),
@@ -18,4 +18,9 @@ export const authorAPI = {
 
   decideOnRequest: (requestId: number, approve: boolean) =>
     apiClient.post<AuthorRequest>(`/author/requests/${requestId}/decision`, { approve }),
+
+  getInternships: () => apiClient.get<Internship[]>('/author/internships'),
+
+  respondToInternship: (internshipId: number, accept: boolean) =>
+    apiClient.post(`/author/internships/${internshipId}/respond`, { accept }),
 };

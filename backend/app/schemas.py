@@ -26,7 +26,7 @@ class AuthorJobStatusUpdate(SQLModel):
     job_status: str
 
 
-# --- Импорт артефактов (без консоли, см. POST /admin/import) ---
+# --- Импорт артефактов (из partner-full) ---
 class ImportResult(SQLModel):
     total: int
     imported: int
@@ -218,25 +218,29 @@ class PartnerCreate(SQLModel):
     name: str
     contact_email: str
 
+
+# --- Дополнительные схемы для вложенных объектов (из author-internships) ---
 class ArtifactShortRead(SQLModel):
     id: int
     title: str
     author_name: str | None = None
 
-
 class PartnerShortRead(SQLModel):
     id: int
     name: str
 
+
 class RequestRead(SQLModel):
     id: int
-
     artifact_id: int
     partner_id: int
-
     artifact: ArtifactShortRead
     partner: PartnerShortRead
-
     type: str
     status: str
     created_at: datetime
+
+
+# --- Ответ на приглашение на стажировку (из author-internships) ---
+class InternshipResponse(SQLModel):
+    accept: bool

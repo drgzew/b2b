@@ -84,7 +84,8 @@ export interface Internship {
   id: number;
   artifact_id: number;
   partner_id: number;
-  status: 'sent' | 'accepted' | 'in_progress' | 'rejected' | 'completed';
+  partner_name?: string;
+  status: 'sent' | 'accepted' | 'in_progress' | 'rejected' | 'completed' | 'cancelled';
   student_name: string;
   created_at: string;
   response_date?: string | null;

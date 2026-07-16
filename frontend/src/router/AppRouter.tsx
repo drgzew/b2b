@@ -9,6 +9,7 @@ import PartnerInternships from '../pages/partner/PartnerInternships';
 
 import AuthorDashboard from '../pages/author/AuthorDashboard';
 import AuthorRequests from '../pages/author/AuthorRequests';
+import AuthorInternships from '../pages/author/AuthorInternships';
 import AuthorLayout from '../layouts/AuthorLayout';
 
 import AuthorProfile from '../pages/profile/AuthorProfile';
@@ -16,14 +17,14 @@ import TeacherProfile from '../pages/profile/TeacherProfile';
 
 import Queue from '../pages/curator/Queue';
 import ArtifactPage from '../pages/curator/ArtifactPage';
-// import Requests from '../pages/curator/Requests';
+import CuratorRequests from '../pages/curator/CuratorRequests';
 import MyArtifacts from '../pages/participant/MyArtifacts';
 
+// Админские страницы (из feature/partner-full)
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminUsers from '../pages/admin/Users';
 import AdminPartners from '../pages/admin/Partners';
 import AdminImport from '../pages/admin/Import';
-import CuratorRequests from '../pages/curator/CuratorRequests';
 
 const AppRouter = () => {
   return (
@@ -42,6 +43,7 @@ const AppRouter = () => {
       <Route path="/author" element={<AuthorLayout />}>
         <Route path="dashboard" element={<AuthorDashboard />} />
         <Route path="requests" element={<AuthorRequests />} />
+        <Route path="internships" element={<AuthorInternships />} />
       </Route>
 
       {/* Профили */}
@@ -53,7 +55,7 @@ const AppRouter = () => {
       <Route path="/curator/artifact/:id" element={<RoleLayout><ArtifactPage /></RoleLayout>} />
       <Route path="/curator/requests" element={<RoleLayout><CuratorRequests /></RoleLayout>} />
 
-      {/* Участник (студент) */}
+      {/* Участник */}
       <Route path="/participant/my-artifacts" element={<RoleLayout><MyArtifacts /></RoleLayout>} />
 
       {/* Админ */}

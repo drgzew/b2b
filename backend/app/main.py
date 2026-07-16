@@ -1,6 +1,5 @@
 import os
 from typing import List
-
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
@@ -8,7 +7,7 @@ from sqlmodel import Session, select
 from .converters import to_artifact_read
 from .db import get_session, init_db
 from .models import Artifact, Tag
-from .routers import admin, author, authors, auth, curator, partner, teachers, tags
+from .routers import admin, author, authors, auth, curator, partner, teachers
 from .schemas import ArtifactCreate, ArtifactRead
 
 app = FastAPI(title="Подписка на университет — API")
@@ -16,10 +15,10 @@ app = FastAPI(title="Подписка на университет — API")
 # CORS — разрешаем все запросы с любых источников (для разработки)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],                     # разрешить все источники
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],                     # разрешить все методы (GET, POST, OPTIONS...)
-    allow_headers=["*"],                     # разрешить все заголовки
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Подключаем роутеры
@@ -30,7 +29,6 @@ app.include_router(authors.router)
 app.include_router(author.router)
 app.include_router(teachers.router)
 app.include_router(admin.router)
-app.include_router(tags.router)
 
 @app.on_event("startup")
 def on_startup() -> None:

@@ -1,20 +1,37 @@
 from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlmodel import Session, select
 
-from fastapi import APIRouter, Depends, HTTPException, Query, requests
-from sqlmodel import Session, select, func
+from ..access import grant_read_access
 from ..converters import to_artifact_read
 from ..db import get_session
 from ..models import Artifact, Request as RequestModel, Tag, User
-from ..schemas import ArtifactRead, ArtifactShortRead, PartnerShortRead, RequestRead, RequestStatusUpdate, TagsUpdate
+from ..schemas import (
+    ArtifactRead,
+    ArtifactShortRead,
+    PartnerShortRead,
+    RequestDecision,
+    RequestRead,
+    RequestStatusUpdate,
+    TagsUpdate,
+)
 from ..security import require_role
 
 router = APIRouter(prefix="/curator", tags=["curator"])
 
 
+def _get_artifact_or_404(artifact_id: int, session: Session) -> Artifact:
+    artifact = session.get(Artifact, artifact_id)
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    return artifact
+
+
 @router.get("/artifacts", response_model=List[ArtifactRead])
 def list_artifacts_for_curator(
     status: Optional[str] = Query(
-        default=None, description="Фильтр по curator_status: draft | approved | rejected"
+        default=None,
+        description="Фильтр по curator_status: draft | approved | rejected",
     ),
     user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
@@ -26,11 +43,15 @@ def list_artifacts_for_curator(
     return [to_artifact_read(a) for a in artifacts]
 
 
-def _get_artifact_or_404(artifact_id: int, session: Session) -> Artifact:
-    artifact = session.get(Artifact, artifact_id)
-    if not artifact:
-        raise HTTPException(status_code=404, detail="Artifact not found")
-    return artifact
+# ✅ Добавленный эндпоинт для получения конкретного артефакта
+@router.get("/artifacts/{artifact_id}", response_model=ArtifactRead)
+def get_artifact_for_curator(
+    artifact_id: int,
+    user: User = Depends(require_role("curator", "admin")),
+    session: Session = Depends(get_session),
+):
+    artifact = _get_artifact_or_404(artifact_id, session)
+    return to_artifact_read(artifact)
 
 
 @router.post("/artifacts/{artifact_id}/approve", response_model=ArtifactRead)
@@ -69,40 +90,50 @@ def update_artifact_tags(
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
-
     tags = session.exec(select(Tag).where(Tag.id.in_(data.tag_ids))).all()
+
     found_ids = {t.id for t in tags}
     missing = set(data.tag_ids) - found_ids
     if missing:
-        raise HTTPException(status_code=400, detail=f"Unknown tag_ids: {sorted(missing)}")
+        raise HTTPException(
+            status_code=400, detail=f"Unknown tag_ids: {sorted(missing)}"
+        )
 
-    artifact.tags = tags  # полная перезапись списка тегов, а не добавление
+    artifact.tags = tags
     session.add(artifact)
     session.commit()
     session.refresh(artifact)
     return to_artifact_read(artifact)
 
+
+# ✅ Добавленный эндпоинт для получения всех тегов
+@router.get("/tags", response_model=List[Tag])
+def list_all_tags(
+    user: User = Depends(require_role("curator", "admin")),
+    session: Session = Depends(get_session),
+):
+    """Получить все теги для управления тегами артефактов."""
+    return session.exec(select(Tag)).all()
+
+
 def to_request_read(req: RequestModel) -> RequestRead:
     return RequestRead(
         id=req.id,
-
         artifact_id=req.artifact_id,
         partner_id=req.partner_id,
-
         artifact=ArtifactShortRead(
             id=req.artifact.id,
             title=req.artifact.title,
         ),
-
         partner=PartnerShortRead(
             id=req.partner.id,
             name=req.partner.name,
         ),
-
         type=req.type,
         status=req.status,
         created_at=req.created_at,
     )
+
 
 @router.get("/requests", response_model=List[RequestRead])
 def list_requests(
@@ -110,54 +141,62 @@ def list_requests(
     session: Session = Depends(get_session),
 ):
     requests = session.exec(select(RequestModel)).all()
+    return [to_request_read(r) for r in requests]
 
-    return [to_request_read(req) for req in requests]
+
+@router.post("/requests/{request_id}/decision", response_model=RequestRead)
+def decide_on_request(
+    request_id: int,
+    data: RequestDecision,
+    user: User = Depends(require_role("curator", "admin")),
+    session: Session = Depends(get_session),
+):
+    req = session.get(RequestModel, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    if req.type != "full_text":
+        raise HTTPException(
+            status_code=400, detail="Only full_text requests can be decided by curator"
+        )
+
+    if req.status != "sent":
+        raise HTTPException(
+            status_code=400, detail=f"Request already in status '{req.status}'"
+        )
+
+    if data.approve:
+        req.status = "approved"
+        grant_read_access(session, req.artifact_id, req.partner_id)
+    else:
+        req.status = "rejected"
+
+    session.add(req)
+    session.commit()
+    session.refresh(req)
+    return to_request_read(req)
 
 
-@router.patch("/requests/{request_id}", response_model=RequestRead)
+@router.patch("/requests/{request_id}/status", response_model=RequestRead)
 def update_request_status(
     request_id: int,
     data: RequestStatusUpdate,
     user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
-    req = session.get(RequestModel, request_id)
-
-    if not req:
+    valid_statuses = {"in_progress", "done"}
+    if data.status not in valid_statuses:
         raise HTTPException(
-            status_code=404,
-            detail="Request not found"
+            status_code=400,
+            detail=f"status must be one of {sorted(valid_statuses)}",
         )
 
-    req.status = data.status
+    req = session.get(RequestModel, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
 
+    req.status = data.status
     session.add(req)
     session.commit()
     session.refresh(req)
-
     return to_request_read(req)
-
-@router.get("/artifacts/{artifact_id}", response_model=ArtifactRead)
-def get_artifact(
-    artifact_id: int,
-    user: User = Depends(require_role("curator", "admin")),
-    session: Session = Depends(get_session),
-):
-    artifact = _get_artifact_or_404(artifact_id, session)
-    return to_artifact_read(artifact)
-
-
-@router.get("/stats")
-def curator_stats(
-    user: User = Depends(require_role("curator", "admin")),
-    session: Session = Depends(get_session),
-):
-    draft_count = session.exec(
-        select(func.count())
-        .select_from(Artifact)
-        .where(Artifact.curator_status == "draft")).one()
-    requests_count = session.exec(
-        select(func.count())
-        .select_from(RequestModel)
-        .where(RequestModel.status == "sent")).one()
-    return {"draft": draft_count, "requests": requests_count}

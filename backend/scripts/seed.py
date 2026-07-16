@@ -1,10 +1,17 @@
 """
 Наполняет БД тестовыми данными для пилота.
-Гарантированное сохранение тегов через прямые SQL-вставки.
-Запуск (из контейнера api): python scripts/seed.py
+Запуск (из контейнера api):
+    python scripts/seed.py
+    python scripts/seed.py --file /data/raw/libtheses.json
 """
 import os
 import sys
+import json
+import random
+import argparse
+from pathlib import Path
+from datetime import datetime
+from typing import List, Dict, Optional
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -24,7 +31,7 @@ from app.models import (
     User,
 )
 from app.security import hash_password
-from app.sso import parse_tumgu_profile
+
 
 # ============================================================
 # РЕАЛЬНЫЕ НАПРАВЛЕНИЯ ТюмГУ
@@ -68,7 +75,7 @@ REAL_PROGRAMS = [
 ]
 
 # ============================================================
-# ТЕГИ ИЗ topics.ts
+# ТЕГИ
 # ============================================================
 TOPICS = [
     {
@@ -129,121 +136,7 @@ TOPICS = [
 ]
 
 # ============================================================
-# АРТЕФАКТЫ (с тегами в виде имён)
-# ============================================================
-ARTIFACTS = [
-    {
-        "title": "Оптимизация буровых растворов",
-        "type": "vkr",
-        "annotation": "ВКР о снижении затрат на буровые растворы за счёт подбора состава",
-        "curator_status": "approved",
-        "read_policy": "requires_approval",
-        "file_path": "https://vkr.utmn-demo.ru/works/1",
-        "author_full_name": "Орлова Анна Сергеевна",
-        "program": "05.03.02 География",
-        "job_status": "searching",
-        "tag_names": ["нефть", "бурение"],
-    },
-    {
-        "title": "Цифровой двойник насосной станции",
-        "type": "vkr",
-        "annotation": "Модель цифрового двойника для мониторинга состояния насосного оборудования",
-        "curator_status": "approved",
-        "read_policy": "open",
-        "file_path": "https://vkr.utmn-demo.ru/works/2",
-        "author_full_name": "Соколов Дмитрий Алексеевич",
-        "program": "05.03.03 Картография и геоинформатика",
-        "job_status": "employed",
-        "tag_names": ["цифровой двойник", "нефть"],
-    },
-    {
-        "title": "Прогноз спроса в логистике методами ML",
-        "type": "article",
-        "annotation": "Статья о применении моделей машинного обучения для прогноза спроса",
-        "curator_status": "approved",
-        "read_policy": "open",
-        "file_path": "https://articles.utmn-demo.ru/logistics-ml.pdf",
-        "author_full_name": "Зайцева Екатерина Владимировна",
-        "program": "02.03.03 Математическое обеспечение и администрирование информационных систем",
-        "job_status": "not_searching",
-        "tag_names": ["машинное обучение", "Big Data"],
-    },
-    {
-        "title": "Энергоэффективность буровых установок",
-        "type": "talk",
-        "annotation": "Доклад с конференции о путях повышения энергоэффективности",
-        "curator_status": "approved",
-        "read_policy": "requires_approval",
-        "file_path": "https://talks.utmn-demo.ru/energy-efficiency.pdf",
-        "author_full_name": "Петров Максим Иванович",
-        "program": "05.03.03 Картография и геоинформатика",
-        "job_status": "searching",
-        "tag_names": ["энергетика", "нефть"],
-    },
-    {
-        "title": "Автоматизация учёта НИОКР",
-        "type": "article",
-        "annotation": "Статья про автоматизацию процессов учёта научно-исследовательских работ",
-        "curator_status": "draft",
-        "read_policy": "requires_approval",
-        "file_path": "https://articles.utmn-demo.ru/niokr-automation.pdf",
-        "author_full_name": "Волкова Ольга Павловна",
-        "program": "09.03.02 Информационные системы и технологии",
-        "job_status": "employed",
-        "tag_names": ["информационные системы"],
-    },
-    {
-        "title": "Применение нейросетей для интерпретации геофизических данных",
-        "type": "article",
-        "annotation": "Исследование использования свёрточных нейросетей для анализа сейсмических разрезов",
-        "curator_status": "approved",
-        "read_policy": "open",
-        "file_path": "https://articles.utmn-demo.ru/neural-geophysics.pdf",
-        "author_full_name": "Смирнов Сергей Николаевич",
-        "program": "02.03.03 Математическое обеспечение и администрирование информационных систем",
-        "job_status": "searching",
-        "tag_names": ["нейросети", "сейсмика"],
-    },
-    {
-        "title": "Биоремедиация нефтезагрязнённых почв",
-        "type": "vkr",
-        "annotation": "ВКР по очистке почв с использованием микроорганизмов-деструкторов",
-        "curator_status": "approved",
-        "read_policy": "requires_approval",
-        "file_path": "https://vkr.utmn-demo.ru/works/4",
-        "author_full_name": "Козлова Анастасия Игоревна",
-        "program": "05.03.06 Экология и природопользование",
-        "job_status": "not_searching",
-        "tag_names": ["экология", "очистка воды"],
-    },
-    {
-        "title": "Разработка биопрепаратов для очистки сточных вод",
-        "type": "article",
-        "annotation": "Статья о создании консорциумов бактерий для очистки промышленных стоков",
-        "curator_status": "approved",
-        "read_policy": "open",
-        "file_path": "https://articles.utmn-demo.ru/biopreparations.pdf",
-        "author_full_name": "Иванов Павел Андреевич",
-        "program": "09.03.03 Прикладная информатика",
-        "job_status": "searching",
-        "tag_names": ["экология", "очистка воды"],
-    },
-    {
-        "title": "Прогнозирование отказов оборудования с помощью ML",
-        "type": "talk",
-        "annotation": "Доклад о применении градиентного бустинга для предиктивного обслуживания",
-        "curator_status": "approved",
-        "read_policy": "open",
-        "file_path": "https://talks.utmn-demo.ru/predictive-maintenance.pdf",
-        "author_full_name": "Иванова Мария Дмитриевна",
-        "program": "09.03.02 Информационные системы и технологии",
-        "job_status": "employed",
-        "tag_names": ["машинное обучение", "нейросети"],
-    },
-]
-
-# ============================================================
-# ПАРТНЁРЫ И ПОДПИСКИ
+# ПАРТНЁРЫ
 # ============================================================
 PARTNERS = [
     {
@@ -275,127 +168,301 @@ PARTNERS = [
     },
 ]
 
-TEACHER = {
-    "full_name": "Шевляков Артём Николаевич",
-    "email": "a.n.shevlyakov@utmn.ru",
-    "department": "Школа компьютерных наук",
-    "position": "Заместитель директора по развитию, д.ф.-м.н., профессор",
-}
+
+def generate_teachers(count: int = 20) -> List[Dict]:
+    teachers = [
+        {
+            "full_name": "Шевляков Артём Николаевич",
+            "email": "a.n.shevlyakov@utmn.ru",
+            "department": "Школа компьютерных наук",
+            "position": "Заместитель директора по развитию, д.ф.-м.н., профессор",
+        },
+        {
+            "full_name": "Вдовин Евгений Петрович",
+            "email": "e.p.vdovin@utmn.ru",
+            "department": "Школа компьютерных наук",
+            "position": "Директор ШКН, д.ф.-.м.н., профессор",
+        },
+        {
+            "full_name": "Яркова Елена Леонидовна",
+            "email": "e.l.yarkova@utmn.ru",
+            "department": "Центр иностранных языков и коммуникативных технологий",
+            "position": "Старший преподаватель",
+        },
+        {
+            "full_name": "Борисова Ирина Оттовна",
+            "email": "i.o.borisova@utmn.ru",
+            "department": "Центр иностранных языков и коммуникативных технологий",
+            "position": "Старший преподаватель",
+        },
+        {
+            "full_name": "Кыров Дмитрий Николаевич",
+            "email": "d.n.kyrov@utmn.ru",
+            "department": "Кафедра анатомии и физиологии человека и животных",
+            "position": "Доцент (к.н.)",
+        },
+        {
+            "full_name": "Павлова Елена Александровна",
+            "email": "e.a.pavlova@utmn.ru",
+            "department": "Академический департамент (ШКН)",
+            "position": "Старший преподаватель",
+        },
+        {
+            "full_name": "Перевалова Мария Николаевна",
+            "email": "m.n.perevalova@utmn.ru",
+            "department": "Академический департамент (ШКН)",
+            "position": "Доцент",
+        },
+        {
+            "full_name": "Воробьева Марина Сергеевна",
+            "email": "m.s.vorobeva@utmn.ru",
+            "department": "Академический департамент (ШКН)",
+            "position": "Профессор (к.н.)",
+        },
+        {
+            "full_name": "Аврискин Михаил Владимирович",
+            "email": "m.v.avriskin@utmn.ru",
+            "department": "Академический департамент (ШКН)",
+            "position": "Старший преподаватель",
+        },
+        {
+            "full_name": "Шилов Сергей Павлович",
+            "email": "s.p.shilov@utmn.ru",
+            "department": "Заведующий кафедрой (д.н.)",
+            "position": "Кафедра истории",
+        },
+        {
+            "full_name": "Медведев Александр Александрович",
+            "email": "a.a.medvedev@utmn.ru",
+            "department": "Заведующий кафедрой (к.н.)",
+            "position": "Кафедра языкознания и литературоведения",
+        },
+        {
+            "full_name": "Остапенко Анна Сергеевна",
+            "email": "a.s.ostapenko@utmn.ru",
+            "department": "Заведующий кафедрой (к.н.)",
+            "position": "Кафедра прикладной и теоретической лингвистики",
+        },
+    ]
+    return teachers
 
 
-def get_or_create_author(session: Session, full_name: str, program: str, job_status: str, author_counter: int) -> Author:
-    email = f"stud0000{author_counter:06d}@study.utmn.ru"
-    author = session.exec(select(Author).where(Author.email == email)).first()
-    if author:
-        return author
-    profile = parse_tumgu_profile(email)
-    author = Author(
-        email=email,
-        full_name=full_name,
-        photo_url=profile.get("photo_url"),
-        birth_date=profile.get("birth_date"),
-        program=program,
-        job_status=job_status,
-    )
-    session.add(author)
-    session.commit()
-    session.refresh(author)
-    return author
+def load_libtheses_data(file_path: str) -> List[Dict]:
+    """Загружает данные из libtheses.json."""
+    path = Path(file_path)
+    
+    if not path.exists():
+        print(f"❌ Файл {path} не найден")
+        return []
+    
+    print(f"📂 Загружаем данные из {path}")
+    with open(path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    if isinstance(data, list):
+        print(f"   Загружено {len(data)} записей")
+        return data
+    else:
+        print(f"⚠️ Неверный формат данных в {path}")
+        return []
 
 
-def seed() -> None:
+def map_program_to_tags(program: Optional[str]) -> List[str]:
+    """Маппинг направления подготовки на теги."""
+    if not program:
+        return ["информационные системы", "машинное обучение"]
+    
+    program_to_tags = {
+        "нефтегаз": ["нефть", "газ", "бурение"],
+        "информационные": ["информационные системы", "Python", "кибербезопасность"],
+        "математическое": ["машинное обучение", "Big Data", "Python"],
+        "картография": ["3D-модель", "геология", "моделирование"],
+        "экология": ["экология", "очистка воды", "возобновляемая энергетика"],
+        "химия": ["наноматериалы", "экология", "очистка воды"],
+        "физика": ["энергетика", "наноматериалы", "моделирование"],
+        "журналистика": ["NLP", "AI", "информационные системы"],
+        "психология": ["AI", "Big Data", "информационные системы"],
+        "юриспруденция": ["информационные системы", "кибербезопасность"],
+        "менеджмент": ["Big Data", "информационные системы", "цифровой двойник"],
+        "экономика": ["Big Data", "информационные системы"],
+        "педагогика": ["информационные системы", "AI"],
+        "робототехника": ["AI", "машинное обучение", "моделирование"],
+        "безопасность": ["кибербезопасность", "информационные системы"],
+    }
+    
+    program_lower = program.lower()
+    for key, tags in program_to_tags.items():
+        if key in program_lower:
+            return tags[:3]
+    
+    return ["информационные системы", "машинное обучение"]
+
+
+def seed(libtheses_path: Optional[str] = None) -> None:
+    """Основная функция наполнения БД."""
     init_db()
 
     with Session(engine) as session:
-        # 1. Очистка — только b2b-специфичных таблиц (партнёры, подписки, демо-
-        # пользователи и т.п.). НЕ трогаем artifact/artifacttag/author/tag:
-        # если перед seed.py уже отработал parsing.scripts.import и залил
-        # реальные ВКР/статьи, TRUNCATE этих таблиц уничтожил бы их при каждом
-        # повторном запуске seed.py — ровно то, что и происходило раньше.
-        session.execute(text(
-            "TRUNCATE TABLE digestitem, request, subscriptiontag, subscription, "
-            "partner, \"user\", favorite, internship CASCADE;"
-        ))
+        # 1. Очистка
+        print("🗑️ Очистка базы данных...")
+        session.execute(text("""
+            TRUNCATE TABLE digestitem, request, artifacttag, subscriptiontag, 
+            artifact, subscription, partner, "user", author, teacher, 
+            favorite, internship CASCADE;
+        """))
         session.commit()
+        print("✅ База данных очищена")
 
-        # 2. Теги таксономии — get-or-create по имени, а не принудительный id.
-        # Раньше здесь стоял session.merge(Tag(id=tag_data["id"], ...)) с
-        # захардкоженными id из TOPICS — если в базе уже были теги с другими
-        # id под тем же именем (например, из парсера или прошлого запуска
-        # seed.py, т.к. tag больше не в TRUNCATE), merge пытался переиспользовать
-        # чужой id и падал на UNIQUE-ограничении имени. get-or-create по имени
-        # этого не делает: совпадающий по имени тег просто переиспользуется.
-        print("Создаём теги из topics.ts...")
-        existing_tags_by_name = {tag.name: tag for tag in session.exec(select(Tag)).all()}
+        # 2. Создаём теги
+        print("🏷️ Создаём теги...")
         for topic in TOPICS:
             for tag_data in topic["tags"]:
-                if tag_data["name"] not in existing_tags_by_name:
-                    tag = Tag(name=tag_data["name"])
-                    session.add(tag)
-                    session.flush()  # получаем id, не дожидаясь commit
-                    existing_tags_by_name[tag.name] = tag
+                tag = Tag(id=tag_data["id"], name=tag_data["name"])
+                session.merge(tag)
         session.commit()
+        tags_by_name = {tag.name: tag for tag in session.exec(select(Tag)).all()}
+        print(f"   Создано {len(tags_by_name)} тегов")
 
-        tags_by_name = existing_tags_by_name
-        print(f"Тегов в базе: {len(tags_by_name)}")
+        # 3. Загружаем данные из libtheses.json
+        libtheses_data = []
+        
+        if libtheses_path:
+            libtheses_data = load_libtheses_data(libtheses_path)
+        
+        # Если путь не указан или файл не найден, пробуем стандартные пути
+        if not libtheses_data:
+            default_paths = [
+                "data/raw/libtheses.json",
+                "../data/raw/libtheses.json",
+                "/data/raw/libtheses.json",
+            ]
+            for path in default_paths:
+                libtheses_data = load_libtheses_data(path)
+                if libtheses_data:
+                    break
+        
+        # Если данных нет, используем демо-данные
+        if not libtheses_data:
+            print("⚠️ Используются демо-данные (3 записи)")
+            libtheses_data = [
+                {
+                    "title": "Оптимизация буровых растворов",
+                    "authors": ["Орлова Анна Сергеевна"],
+                    "year": 2024,
+                    "abstract": "ВКР о снижении затрат на буровые растворы",
+                    "institute": "Школа естественных наук",
+                    "major": "05.03.02 География",
+                },
+                {
+                    "title": "Цифровой двойник насосной станции",
+                    "authors": ["Соколов Дмитрий Алексеевич"],
+                    "year": 2024,
+                    "abstract": "Модель цифрового двойника для мониторинга",
+                    "institute": "Институт математики и компьютерных наук",
+                    "major": "09.03.02 Информационные системы и технологии",
+                },
+                {
+                    "title": "Прогноз спроса в логистике методами ML",
+                    "authors": ["Зайцева Екатерина Владимировна"],
+                    "year": 2024,
+                    "abstract": "Применение ML для прогноза спроса",
+                    "institute": "Институт математики и компьютерных наук",
+                    "major": "02.03.03 Математическое обеспечение",
+                },
+            ]
 
-        # 3. Преподаватель
-        teacher = session.exec(select(Teacher).where(Teacher.email == TEACHER["email"])).first()
-        if not teacher:
-            teacher = Teacher(**TEACHER)
+        print(f"📚 Загружено {len(libtheses_data)} ВКР")
+
+        # 4. Генерируем преподавателей
+        teachers_data = generate_teachers(20)
+        teachers_cache = {}
+        
+        print("👨‍🏫 Создаём преподавателей...")
+        for t_data in teachers_data:
+            teacher = Teacher(**t_data)
             session.add(teacher)
-            session.commit()
-            session.refresh(teacher)
+            session.flush()
+            teachers_cache[t_data["full_name"]] = teacher
+        session.commit()
+        print(f"   Создано {len(teachers_cache)} преподавателей")
 
-        # 4. Создаём авторов и артефакты (без привязки тегов, сделаем позже).
-        # get-or-create по title — artifact больше не в TRUNCATE (см. выше),
-        # так что повторный запуск seed() не должен плодить дубли демо-работ.
-        # Так же не мутируем сам ARTIFACTS (dict(data), а не data.pop на
-        # оригинале) — иначе повторный вызов seed() в одном процессе (например,
-        # из будущей admin-ручки) упадёт на второй раз с KeyError на tag_names.
-        print("Создаём артефакты...")
-        authors_by_email = {}
-        author_counter = 0
-        artifacts_list = []
+        # 5. Создаём авторов и артефакты
+        print("📚 Создаём авторов и артефакты...")
+        authors_cache = {}
+        created_artifacts = []
+        
+        for i, work in enumerate(libtheses_data):
+            title = work.get("title", f"ВКР {i+1}")
+            authors = work.get("authors", [])
+            author_full_name = authors[0] if authors else f"Студент {i+1}"
+            year = work.get("year")
+            abstract = work.get("abstract", "")
+            institute = work.get("institute", "")
+            major = work.get("major")
+            
+            # Если major отсутствует, выбираем случайное направление
+            if not major:
+                major = random.choice(REAL_PROGRAMS)
+                print(f"   ⚠️ Для '{title[:30]}...' сгенерировано направление: {major}")
+            
+            source_url = work.get("source_url", "")
+            
+            # Создаём автора
+            if author_full_name not in authors_cache:
+                # Генерируем email
 
-        existing_artifacts_by_title = {
-            a.title: a for a in session.exec(select(Artifact)).all()
-        }
-
-        for raw_data in ARTIFACTS:
-            data = dict(raw_data)
-            author_counter += 1
-            author = get_or_create_author(
-                session,
-                data["author_full_name"],
-                data["program"],
-                data["job_status"],
-                author_counter,
-            )
-            authors_by_email[author.email] = author
-
-            tag_names = data.pop("tag_names")
-
-            artifact = existing_artifacts_by_title.get(data["title"])
-            if artifact is None:
-                artifact = Artifact(
-                    title=data["title"],
-                    type=data["type"],
-                    annotation=data["annotation"],
-                    curator_status=data["curator_status"],
-                    read_policy=data["read_policy"],
-                    file_path=data["file_path"],
-                    author_id=author.id,
-                    supervisor_id=teacher.id,
+                counter = 1
+                
+                email = f"stud{str(i + 1).zfill(10)}@study.utmn.ru"
+                while session.exec(select(Author).where(Author.email == email)).first():
+                    email = f"stud{str(i + 1 + counter).zfill(10)}@study.utmn.ru"
+                    counter += 1
+                
+                job_status = random.choices(
+                    ["searching", "employed", "not_searching"],
+                    weights=[0.5, 0.3, 0.2]
+                )[0]
+                
+                author = Author(
+                    email=email,
+                    full_name=author_full_name,
+                    program=major,
+                    job_status=job_status,
                 )
-                session.add(artifact)
-                session.commit()
-                session.refresh(artifact)
-            artifacts_list.append((artifact, tag_names))
-
-        # 5. Привязываем теги к артефактам через прямой SQL
-        print("Привязываем теги к артефактам...")
-        for artifact, tag_names in artifacts_list:
+                session.add(author)
+                session.flush()
+                authors_cache[author_full_name] = author
+                print(f"   Создан автор: {author_full_name} ({email})")
+            
+            author = authors_cache[author_full_name]
+            
+            # Теги
+            tag_names = map_program_to_tags(major)
+            all_tags = list(tags_by_name.keys())
+            additional = random.sample(
+                [t for t in all_tags if t not in tag_names],
+                min(random.randint(0, 2), len(all_tags) - len(tag_names))
+            )
+            tag_names.extend(additional)
+            tag_names = list(set(tag_names))[:4]
+            
+            supervisor = random.choice(list(teachers_cache.values())) if teachers_cache else None
+            read_policy = random.choices(["open", "requires_approval"], weights=[0.3, 0.7])[0]
+            
+            artifact = Artifact(
+                title=title,
+                type="vkr",
+                annotation=abstract or "Нет аннотации",
+                file_path=source_url or f"https://library.utmn.ru/dl/vkr_{i+1}.pdf",
+                year=year,
+                curator_status="approved",
+                read_policy=read_policy,
+                author_id=author.id,
+                supervisor_id=supervisor.id if supervisor else None,
+            )
+            session.add(artifact)
+            session.flush()
+            
             for tag_name in tag_names:
                 tag = tags_by_name.get(tag_name)
                 if tag:
@@ -403,10 +470,16 @@ def seed() -> None:
                         text("INSERT INTO artifacttag (artifact_id, tag_id) VALUES (:a, :t) ON CONFLICT DO NOTHING"),
                         {"a": artifact.id, "t": tag.id}
                     )
-            session.commit()
+            
+            created_artifacts.append(artifact)
+            if (i + 1) % 10 == 0:
+                print(f"   Создано {i + 1} артефактов...")
+        
+        session.commit()
+        print(f"   Создано {len(authors_cache)} авторов и {len(created_artifacts)} артефактов")
 
-        # 6. Создаём партнёров и подписки (тоже без тегов, привяжем позже)
-        print("Создаём партнёров и подписки...")
+        # 6. Партнёры и подписки
+        print("🏢 Создаём партнёров и подписки...")
         partners = {}
         subscriptions_list = []
 
@@ -431,8 +504,6 @@ def seed() -> None:
                 session.refresh(sub)
                 subscriptions_list.append((sub, topic["tags"]))
 
-        # 7. Привязываем теги к подпискам через прямой SQL
-        print("Привязываем теги к подпискам...")
         for sub, topic_tags in subscriptions_list:
             for tag_data in topic_tags:
                 tag = tags_by_name.get(tag_data["name"])
@@ -443,9 +514,12 @@ def seed() -> None:
                     )
             session.commit()
 
-        # 8. Создаём пользователей
-        print("Создаём пользователей...")
+        print(f"   Создано {len(partners)} партнёров и {len(subscriptions_list)} подписок")
+
+        # 7. Пользователи
+        print("👤 Создаём пользователей...")
         users = []
+        
         for login_email, partner in partners.items():
             users.append(
                 User(
@@ -455,85 +529,91 @@ def seed() -> None:
                     partner_id=partner.id,
                 )
             )
+        
         users.append(
             User(email="curator@demo.ru", password_hash=hash_password("pass123"), role="curator")
         )
         users.append(
             User(email="admin@demo.ru", password_hash=hash_password("pass123"), role="admin")
         )
-        for email, author in authors_by_email.items():
+        
+        for author in authors_cache.values():
             users.append(
                 User(
-                    email=email,
+                    email=author.email,
                     password_hash=hash_password("pass123"),
                     role="author",
                     author_id=author.id,
                 )
             )
+        
         session.add_all(users)
         session.commit()
+        print(f"   Создано {len(users)} пользователей")
 
-        # 9. Избранное и стажировки (необязательно)
-        artifacts = session.exec(select(Artifact)).all()
-        if artifacts:
-            gpn = partners["gpn@demo.ru"]
-            yandex = partners["yandex@demo.ru"]
-            eco = partners["eco@demo.ru"]
-            if len(artifacts) >= 3:
-                session.add(Favorite(artifact_id=artifacts[0].id, partner_id=gpn.id))
-                session.add(Favorite(artifact_id=artifacts[2].id, partner_id=yandex.id))
-                session.add(Favorite(artifact_id=artifacts[6].id, partner_id=eco.id))
-            if len(artifacts) >= 2:
-                session.add(
-                    Internship(
-                        artifact_id=artifacts[0].id,
-                        partner_id=gpn.id,
-                        student_name="Орлова Анна Сергеевна",
-                        status="sent",
-                    )
-                )
-                session.add(
-                    Internship(
-                        artifact_id=artifacts[4].id,
-                        partner_id=yandex.id,
-                        student_name="Волкова Ольга Павловна",
-                        status="accepted",
-                    )
-                )
+        # 8. Избранное
+        print("⭐ Создаём избранное...")
+        if created_artifacts:
+            gpn = partners.get("gpn@demo.ru")
+            yandex = partners.get("yandex@demo.ru")
+            eco = partners.get("eco@demo.ru")
+            
+            if gpn and len(created_artifacts) >= 1:
+                session.add(Favorite(artifact_id=created_artifacts[0].id, partner_id=gpn.id))
+            if yandex and len(created_artifacts) >= 2:
+                session.add(Favorite(artifact_id=created_artifacts[1].id, partner_id=yandex.id))
+            if eco and len(created_artifacts) >= 3:
+                session.add(Favorite(artifact_id=created_artifacts[2].id, partner_id=eco.id))
             session.commit()
 
-        # 10. Диагностика
-        artifact_tag_count = session.execute(text("SELECT COUNT(*) FROM artifacttag")).scalar()
-        subscription_tag_count = session.execute(text("SELECT COUNT(*) FROM subscriptiontag")).scalar()
-        print(f"Связей артефакт-тег: {artifact_tag_count}")
-        print(f"Связей подписка-тег: {subscription_tag_count}")
-
+        # 9. Статистика
         artifact_count = session.query(Artifact).count()
+        author_count = session.query(Author).count()
+        teacher_count = session.query(Teacher).count()
         subscription_count = session.query(Subscription).count()
         user_count = session.query(User).count()
+        tag_count = session.query(Tag).count()
 
-        print(
-            f"\n✅ Готово!\n"
-            f"  • {artifact_count} артефактов\n"
-            f"  • {len(authors_by_email)} авторов\n"
-            f"  • 1 преподаватель\n"
-            f"  • {len(partners)} партнёров с подписками\n"
-            f"  • {subscription_count} подписок\n"
-            f"  • {user_count} пользователей\n"
-            f"\n🔐 Логины:\n"
-            f"  Партнёры:\n"
-            f"    gpn@demo.ru    / pass123  (Газпромнефть)\n"
-            f"    yandex@demo.ru / pass123  (Яндекс)\n"
-            f"    eco@demo.ru    / pass123  (ЗапСибЭкоЦентр)\n"
-            f"  Куратор:\n"
-            f"    curator@demo.ru / pass123\n"
-            f"  Админ:\n"
-            f"    admin@demo.ru / pass123\n"
-            f"  Авторы (email как логин):\n"
-        )
-        for email in authors_by_email:
-            print(f"    {email} / pass123")
+        print("\n" + "=" * 60)
+        print("✅ БАЗА ДАННЫХ УСПЕШНО НАПОЛНЕНА!")
+        print("=" * 60)
+        print(f"📊 Статистика:")
+        print(f"   • {artifact_count} артефактов (ВКР)")
+        print(f"   • {author_count} авторов (студентов)")
+        print(f"   • {teacher_count} преподавателей")
+        print(f"   • {tag_count} тегов")
+        print(f"   • {len(partners)} партнёров")
+        print(f"   • {subscription_count} подписок")
+        print(f"   • {user_count} пользователей")
+        
+        print("\n🔐 Логины для входа:")
+        print("   Партнёры:")
+        for login_email in partners:
+            print(f"     {login_email} / pass123")
+        print("   Куратор:")
+        print("     curator@demo.ru / pass123")
+        print("   Админ:")
+        print("     admin@demo.ru / pass123")
+        print("   Авторы (вход по университетской почте):")
+        for author in list(authors_cache.values())[:5]:
+            print(f"     {author.email} / pass123")
+        if len(authors_cache) > 5:
+            print(f"     ... и ещё {len(authors_cache) - 5} авторов")
+        print("=" * 60)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Наполнение БД тестовыми данными")
+    parser.add_argument(
+        "--file",
+        type=str,
+        default=None,
+        help="Путь к файлу libtheses.json"
+    )
+    args = parser.parse_args()
+    
+    seed(args.file)
 
 
 if __name__ == "__main__":
-    seed()
+    main()
