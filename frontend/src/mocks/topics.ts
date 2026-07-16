@@ -1,6 +1,5 @@
 import type { Tag } from "../api/types";
 
-
 export interface Topic {
     id: number;
     name: string;

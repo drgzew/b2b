@@ -13,6 +13,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional
+import random
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -299,42 +300,126 @@ def load_normalized_data(file_path: str) -> List[Dict]:
     path = Path(file_path)
     
     if not path.exists():
-        print(f"❌ Файл {path} не найден")
+        print(f"Файл {path} не найден")
         return []
     
-    print(f"📂 Загружаем данные из {path}")
+    print(f"Загружаем данные из {path}")
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
     if isinstance(data, list):
-        print(f"   Загружено {len(data)} записей")
+        print(f"Загружено {len(data)} записей")
         return data
     else:
         print(f"⚠️ Неверный формат данных в {path}")
         return []
 
 
-def map_program_to_tags(program: Optional[str]) -> List[str]:
-    """Маппинг направления подготовки на теги."""
-    if not program:
-        return ["информационные системы", "машинное обучение"]
-    
-    program_to_tags = {
-        "нефтегаз": ["нефть", "газ", "бурение"],
-        "информационные": ["информационные системы", "Python", "кибербезопасность"],
-        "математическое": ["машинное обучение", "Big Data", "Python"],
-        "картография": ["3D-модель", "геология", "моделирование"],
-        "экология": ["экология", "очистка воды", "возобновляемая энергетика"],
-        "химия": ["наноматериалы", "экология", "очистка воды"],
-        "физика": ["энергетика", "наноматериалы", "моделирование"],
-        "журналистика": ["NLP", "AI", "информационные системы"],
-        "психология": ["AI", "Big Data", "информационные системы"],
-        "юриспруденция": ["информационные системы", "кибербезопасность"],
-        "менеджмент": ["Big Data", "информационные системы", "цифровой двойник"],
-        "экономика": ["Big Data", "информационные системы"],
-        "педагогика": ["информационные системы", "AI"],
-        "робототехника": ["AI", "машинное обучение", "моделирование"],
-        "безопасность": ["кибербезопасность", "информационные системы"],
+def map_tags_to_topic(tag_name: str) -> List[int]:
+    """Определяет, к каким темам относится тег."""
+    tag_to_topic = {
+        # Искусственный интеллект и машинное обучение
+        "AI": [1],
+        "машинное обучение": [1],
+        "нейросети": [1],
+        "NLP": [1],
+        "Big Data": [1],
+        "computer vision": [1],
+        "информационные системы": [1, 3],
+        
+        # Нефтегазовые технологии
+        "нефть": [2],
+        "газ": [2],
+        "бурение": [2],
+        "цифровой двойник": [2],
+        "моделирование": [2],
+        "геология": [2],
+        "газовая промышленность": [2],
+        "нефтепродукты": [2],
+        "нефтешлам": [2],
+        "сейсмика": [2],
+        "3D-модель": [2],
+        
+        # Информационные технологии и разработка
+        "Python": [3],
+        "React": [3],
+        "Backend": [3],
+        "API": [3],
+        "сети": [3],
+        "кибербезопасность": [3],
+        
+        # Экология и природопользование
+        "экология": [4],
+        "очистка воды": [4],
+        "возобновляемая энергетика": [4],
+        "гидрология": [4],
+        "растительность": [4],
+        "биомасса": [4],
+        "органическое вещество": [4],
+        "тяжёлые металлы": [4],
+        "радиоактивность": [4],
+        "энергетика": [4],
+        "наноматериалы": [4],
+        
+        # Лингвистика и филология
+        "русский язык": [5],
+        "языкознание": [5],
+        "лексика": [5],
+        "фразеологизмы": [5],
+        "семантика": [5],
+        "лингвистика": [5],
+        "гастрономический дискурс": [5],
+        "лексические единицы": [5],
+        "филология": [5],
+        
+        # Педагогика и образование
+        "образование": [6],
+        "педагогика": [6],
+        "методика": [6],
+        "функциональная грамотность": [6],
+        "универсальные учебные действия": [6],
+        "педагогические технологии": [6],
+        "школьная программа": [6],
+        "уроки литературы": [6],
+        "уроки русского языка": [6],
+        
+        # Экономика и финансы
+        "экономика": [7],
+        "финансы": [7],
+        "инвестиции": [7],
+        "управление": [7],
+        "бюджет": [7],
+        "финансовые результаты": [7],
+        "финансовая устойчивость": [7],
+        "финансирование": [7],
+        
+        # Физическая культура и спорт
+        "физическая культура": [8],
+        "спорт": [8],
+        "волейбол": [8],
+        "баскетбол": [8],
+        "тренировка": [8],
+        "физическая подготовка": [8],
+        "лыжный спорт": [8],
+        "спортивные игры": [8],
+        "спортсмены": [8],
+        
+        # Юриспруденция и право
+        "юриспруденция": [9],
+        "правовое регулирование": [9],
+        "право": [9],
+        "гражданское право": [9],
+        "законодательство": [9],
+        
+        # Общая наука и исследования
+        "исследование": [10],
+        "анализ": [10],
+        "психология": [10],
+        "история": [10],
+        "культурология": [10],
+        "социология": [10],
+        "литературоведение": [10],
+        "литературная критика": [10],
     }
     
     program_lower = program.lower()
@@ -412,14 +497,14 @@ def seed(normalized_path: Optional[str] = None) -> None:
 
     with Session(engine) as session:
         # 1. Очистка
-        print("🗑️ Очистка базы данных...")
+        print("Очистка базы данных...")
         session.execute(text("""
             TRUNCATE TABLE digestitem, request, artifacttag, subscriptiontag, 
             artifact, subscription, partner, "user", author, teacher, 
             favorite, internship CASCADE;
         """))
         session.commit()
-        print("✅ База данных очищена")
+        print("База данных очищена")
 
         # 2. Создаём теги — get-or-create по имени, а не merge по жёстким id:
         # таблица tag не входит в TRUNCATE выше, и после импорта/прошлых
@@ -439,10 +524,10 @@ def seed(normalized_path: Optional[str] = None) -> None:
 
         # 3. Загружаем данные из normalized.json
         normalized_data = []
-        
+
         if normalized_path:
             normalized_data = load_normalized_data(normalized_path)
-        
+
         # Если путь не указан или файл не найден, пробуем стандартные пути
         if not normalized_data:
             default_paths = [
@@ -454,43 +539,48 @@ def seed(normalized_path: Optional[str] = None) -> None:
                 normalized_data = load_normalized_data(path)
                 if normalized_data:
                     break
-        
-        # Если данных нет, используем демо-данные
+
         if not normalized_data:
-            print("⚠️ Нет данных для импорта!")
+            print("Нет данных для импорта!")
             return
 
-        print(f"📚 Загружено {len(normalized_data)} артефактов")
+        print(f"Загружено {len(normalized_data)} артефактов")
 
-        # Считаем статистику по источникам
         source_counts = {}
         for work in normalized_data:
             source = work.get("source", "unknown")
             source_counts[source] = source_counts.get(source, 0) + 1
-        
-        print(f"   Источники: {source_counts}")
+
+        print(f"Источники: {source_counts}")
 
         # 4. Генерируем преподавателей
         teachers_data = generate_teachers(20)
         teachers_cache = {}
-        
-        print("👨‍🏫 Создаём преподавателей...")
+
+        print("Создаём преподавателей...")
         for t_data in teachers_data:
             teacher = Teacher(**t_data)
             session.add(teacher)
             session.flush()
             teachers_cache[t_data["full_name"]] = teacher
         session.commit()
-        print(f"   Создано {len(teachers_cache)} преподавателей")
+        print(f"Создано {len(teachers_cache)} преподавателей")
 
         # 5. Создаём авторов и артефакты
-        print("📚 Создаём авторов и артефакты...")
+        print("Создаём авторов и артефакты...")
         authors_cache = {}
         created_artifacts = []
         skipped = 0
 
         author_emails, stud_emails = {}, {}
-        
+
+        # Создаём маппинг тегов для быстрого доступа
+        tag_id_to_topic_ids = {}
+        for tag_name, tag in tags_by_name.items():
+            topic_ids = map_tags_to_topic(tag_name)
+            if topic_ids:
+                tag_id_to_topic_ids[tag.id] = topic_ids
+
         for i, work in enumerate(normalized_data):
             title = work.get("title", f"Артефакт {i+1}")
             # Формат v2 (scripts/normalize.py): author — объект с реальным
@@ -521,37 +611,34 @@ def seed(normalized_path: Optional[str] = None) -> None:
             major = author_program or work.get("major")
             if not major:
                 major = random.choice(REAL_PROGRAMS)
-                print(f"   ⚠️ Для '{title[:30]}...' сгенерировано направление: {major}")
-            
+
             source_url = work.get("source_url", "")
             artifact_type = work.get("type", "article")
-            
+
             # Для OpenAlex статей может не быть автора
             if not author_name:
                 author_name = f"Автор {i+1}"
 
             email_prefix = 'author' if source == "openalex" else 'stud'
             email_postfix = 'utmn.ru' if source == "openalex" else 'study.utmn.ru'
-            
-            # Создаём автора
+
             if author_name not in authors_cache:
-                # Генерируем email
                 counter = 1
                 email = f"{email_prefix}{str(i + 1).zfill(10)}@{email_postfix}"
                 while session.exec(select(Author).where(Author.email == email)).first():
                     email = f"{email_prefix}{str(i + 1 + counter).zfill(10)}@{email_postfix}"
                     counter += 1
-                
+
                 if source == "openalex":
                     author_emails[author_name] = email
                 else:
                     stud_emails[author_name] = email
-                
+
                 job_status = random.choices(
                     ["searching", "employed", "not_searching"],
                     weights=[0.5, 0.3, 0.2]
                 )[0]
-                
+
                 author = Author(
                     email=email,
                     full_name=author_name,
@@ -561,8 +648,7 @@ def seed(normalized_path: Optional[str] = None) -> None:
                 session.add(author)
                 session.flush()
                 authors_cache[author_name] = author
-                print(f"   Создан автор: {author_name} ({email})")
-            
+
             author = authors_cache[author_name]
 
             # Научный руководитель: у ВКР normalize.py извлекает реального из
@@ -642,14 +728,14 @@ def seed(normalized_path: Optional[str] = None) -> None:
             created_artifacts.append(artifact)
             if (i + 1) % 50 == 0:
                 print(f"   Создано {i + 1} артефактов...")
-        
+
         session.commit()
         print(f"   Создано {len(authors_cache)} авторов и {len(created_artifacts)} артефактов")
         if skipped:
             print(f"   Пропущено: {skipped}")
 
         # 6. Партнёры и подписки
-        print("🏢 Создаём партнёров и подписки...")
+        print("Создаём партнёров и подписки...")
         partners = {}
         subscriptions_list = []
 
@@ -684,12 +770,12 @@ def seed(normalized_path: Optional[str] = None) -> None:
                     )
             session.commit()
 
-        print(f"   Создано {len(partners)} партнёров и {len(subscriptions_list)} подписок")
+        print(f"Создано {len(partners)} партнёров и {len(subscriptions_list)} подписок")
 
         # 7. Пользователи
-        print("👤 Создаём пользователей...")
+        print("Создаём пользователей...")
         users = []
-        
+
         for login_email, partner in partners.items():
             users.append(
                 User(
@@ -699,14 +785,14 @@ def seed(normalized_path: Optional[str] = None) -> None:
                     partner_id=partner.id,
                 )
             )
-        
+
         users.append(
             User(email="curator@demo.ru", password_hash=hash_password("pass123"), role="curator")
         )
         users.append(
             User(email="admin@demo.ru", password_hash=hash_password("pass123"), role="admin")
         )
-        
+
         for author in authors_cache.values():
             users.append(
                 User(
@@ -716,18 +802,18 @@ def seed(normalized_path: Optional[str] = None) -> None:
                     author_id=author.id,
                 )
             )
-        
+
         session.add_all(users)
         session.commit()
-        print(f"   Создано {len(users)} пользователей")
+        print(f"Создано {len(users)} пользователей")
 
         # 8. Избранное
-        print("⭐ Создаём избранное...")
+        print("Создаём избранное...")
         if created_artifacts:
             gpn = partners.get("gpn@demo.ru")
             yandex = partners.get("yandex@demo.ru")
             eco = partners.get("eco@demo.ru")
-            
+
             if gpn and len(created_artifacts) >= 1:
                 session.add(Favorite(artifact_id=created_artifacts[0].id, partner_id=gpn.id))
             if yandex and len(created_artifacts) >= 2:
@@ -745,7 +831,7 @@ def seed(normalized_path: Optional[str] = None) -> None:
         tag_count = session.query(Tag).count()
 
         print("\n" + "=" * 60)
-        print("База данных успешно наполнена.")
+        print("База данных успешно заполнена.")
         print("=" * 60)
         print(f"Статистика:")
         print(f"   • {artifact_count} артефактов")
@@ -764,7 +850,7 @@ def seed(normalized_path: Optional[str] = None) -> None:
         print("     curator@demo.ru / pass123")
         print("   Админ:")
         print("     admin@demo.ru / pass123")
-        print("   Преподователи:")
+        print("   Преподаватели:")
         for data in teachers_data:
             print(f"     {data['full_name']}: {data['email']} / pass123")
         print("   Авторы статей:")
