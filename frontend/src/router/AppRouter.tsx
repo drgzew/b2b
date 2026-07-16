@@ -19,7 +19,10 @@ import ArtifactPage from '../pages/curator/ArtifactPage';
 // import Requests from '../pages/curator/Requests';
 import MyArtifacts from '../pages/participant/MyArtifacts';
 
-import AdminPanel from '../pages/admin/AdminPanel';
+import AdminDashboard from '../pages/admin/AdminDashboard';
+import AdminUsers from '../pages/admin/Users';
+import AdminPartners from '../pages/admin/Partners';
+import AdminImport from '../pages/admin/Import';
 import CuratorRequests from '../pages/curator/CuratorRequests';
 
 const AppRouter = () => {
@@ -54,7 +57,10 @@ const AppRouter = () => {
       <Route path="/participant/my-artifacts" element={<RoleLayout><MyArtifacts /></RoleLayout>} />
 
       {/* Админ */}
-      <Route path="/admin" element={<RoleLayout><AdminPanel /></RoleLayout>} />
+      <Route path="/admin" element={<RoleLayout><AdminDashboard /></RoleLayout>} />
+      <Route path="/admin/users" element={<RoleLayout><AdminUsers /></RoleLayout>} />
+      <Route path="/admin/partners" element={<RoleLayout><AdminPartners /></RoleLayout>} />
+      <Route path="/admin/import" element={<RoleLayout><AdminImport /></RoleLayout>} />
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

@@ -3,6 +3,7 @@ import { Layout } from 'antd';
 import Header from './Header';
 import PartnerLayout from '../layouts/PartnerLayout';
 import CuratorLayout from '../layouts/CuratorLayout';
+import AdminLayout from '../layouts/AdminLayout';
 
 const { Content } = Layout;
 
@@ -19,6 +20,10 @@ const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
 
   if (role === 'curator') {
     return <CuratorLayout>{children}</CuratorLayout>;
+  }
+
+  if (role === 'admin') {
+    return <AdminLayout>{children}</AdminLayout>;
   }
 
   return (
