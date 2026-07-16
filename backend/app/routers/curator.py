@@ -16,7 +16,7 @@ def list_artifacts_for_curator(
     status: Optional[str] = Query(
         default=None, description="Фильтр по curator_status: draft | approved | rejected"
     ),
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     query = select(Artifact)
@@ -36,7 +36,7 @@ def _get_artifact_or_404(artifact_id: int, session: Session) -> Artifact:
 @router.post("/artifacts/{artifact_id}/approve", response_model=ArtifactRead)
 def approve_artifact(
     artifact_id: int,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
@@ -50,7 +50,7 @@ def approve_artifact(
 @router.post("/artifacts/{artifact_id}/reject", response_model=ArtifactRead)
 def reject_artifact(
     artifact_id: int,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
@@ -65,7 +65,7 @@ def reject_artifact(
 def update_artifact_tags(
     artifact_id: int,
     data: TagsUpdate,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
@@ -106,7 +106,7 @@ def to_request_read(req: RequestModel) -> RequestRead:
 
 @router.get("/requests", response_model=List[RequestRead])
 def list_requests(
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     requests = session.exec(select(RequestModel)).all()
@@ -118,7 +118,7 @@ def list_requests(
 def update_request_status(
     request_id: int,
     data: RequestStatusUpdate,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     req = session.get(RequestModel, request_id)
@@ -140,7 +140,7 @@ def update_request_status(
 @router.get("/artifacts/{artifact_id}", response_model=ArtifactRead)
 def get_artifact(
     artifact_id: int,
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     artifact = _get_artifact_or_404(artifact_id, session)
@@ -149,7 +149,7 @@ def get_artifact(
 
 @router.get("/stats")
 def curator_stats(
-    user: User = Depends(require_role("curator")),
+    user: User = Depends(require_role("curator", "admin")),
     session: Session = Depends(get_session),
 ):
     draft_count = session.exec(
