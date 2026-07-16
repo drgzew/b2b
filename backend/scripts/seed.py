@@ -374,6 +374,8 @@ def seed(normalized_path: Optional[str] = None) -> None:
         authors_cache = {}
         created_artifacts = []
         skipped = 0
+
+        author_emails, stud_emails = {}, {}
         
         for i, work in enumerate(normalized_data):
             title = work.get("title", f"Артефакт {i+1}")
@@ -422,6 +424,11 @@ def seed(normalized_path: Optional[str] = None) -> None:
                 while session.exec(select(Author).where(Author.email == email)).first():
                     email = f"{email_prefix}{str(i + 1 + counter).zfill(10)}@{email_postfix}"
                     counter += 1
+                
+                if source == "openalex":
+                    author_emails[author_name] = email
+                else:
+                    stud_emails[author_name] = email
                 
                 job_status = random.choices(
                     ["searching", "employed", "not_searching"],
@@ -579,9 +586,9 @@ def seed(normalized_path: Optional[str] = None) -> None:
         tag_count = session.query(Tag).count()
 
         print("\n" + "=" * 60)
-        print("✅ БАЗА ДАННЫХ УСПЕШНО НАПОЛНЕНА!")
+        print("База данных успешно наполнена.")
         print("=" * 60)
-        print(f"📊 Статистика:")
+        print(f"Статистика:")
         print(f"   • {artifact_count} артефактов")
         print(f"   • {author_count} авторов")
         print(f"   • {teacher_count} преподавателей")
@@ -589,8 +596,8 @@ def seed(normalized_path: Optional[str] = None) -> None:
         print(f"   • {len(partners)} партнёров")
         print(f"   • {subscription_count} подписок")
         print(f"   • {user_count} пользователей")
-        
-        print("\n🔐 Логины для входа:")
+        print()
+        print("Логины для входа:")
         print("   Партнёры:")
         for login_email in partners:
             print(f"     {login_email} / pass123")
@@ -598,11 +605,15 @@ def seed(normalized_path: Optional[str] = None) -> None:
         print("     curator@demo.ru / pass123")
         print("   Админ:")
         print("     admin@demo.ru / pass123")
-        print("   Авторы (вход по университетской почте):")
-        for author in list(authors_cache.values())[:5]:
-            print(f"     {author.email} / pass123")
-        if len(authors_cache) > 5:
-            print(f"     ... и ещё {len(authors_cache) - 5} авторов")
+        print("   Преподователи:")
+        for data in teachers_data:
+            print(f"     {data['full_name']}: {data['email']} / pass123")
+        print("   Авторы статей:")
+        for name in author_emails:
+            print(f"     {name}: {author_emails[name]} / pass123")
+        print("   Студенты:")
+        for name in stud_emails:
+            print(f"     {name}: {stud_emails[name]} / pass123")
         print("=" * 60)
 
 

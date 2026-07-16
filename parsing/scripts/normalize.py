@@ -209,7 +209,8 @@ def main():
 
     # 1. Загрузка данных OpenAlex
     print("Загрузка данных OpenAlex")
-    openalex_works = load_openalex_data("data/raw/openalex.json")
+    # openalex_works = load_openalex_data("data/raw/openalex.json")
+    openalex_works = []  # убраны статьи openalex
     total_openalex = len(openalex_works)
     
     for n, work in enumerate(openalex_works):
