@@ -2,6 +2,7 @@ import os
 from typing import List
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers import tags
 from sqlmodel import Session, select
 
 from .converters import to_artifact_read
@@ -29,6 +30,7 @@ app.include_router(authors.router)
 app.include_router(author.router)
 app.include_router(teachers.router)
 app.include_router(admin.router)
+app.include_router(tags.router)
 
 @app.on_event("startup")
 def on_startup() -> None:
