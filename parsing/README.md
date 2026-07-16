@@ -59,14 +59,11 @@ python -m scripts.normalize
 
 ## Импорт данных в базу данных
 
-Удалить ранее созданные контейнеры:
-```cmd
-docker-compose down --volumes --rmi all
-```
-
-Поднять контейнеры:
+Пересоздать том для базы данных:
 
 ```cmd
+docker-compose down
+docker volume rm b2b_pgdata
 docker-compose up
 ```
 
@@ -74,15 +71,10 @@ docker-compose up
 
 ```cmd
 docker-compose exec db pg_isready -U app -d app
-docker exec b2b-backend-1 mkdir -p /data
-docker cp parsing b2b-backend-1:/data
-docker cp backend b2b-backend-1:/data
-docker exec -it b2b-backend-1 bash
-cd /data
-python -m parsing.scripts.import --wipe --file parsing/data/normalized.json
-exit
-docker cp b2b-backend-1:/data/data-report.md parsing/
-docker compose exec backend python scripts/seed.py
+docker exec b2b-backend-1 mkdir -p /data/raw
+docker cp parsing/data/raw/libtheses.json b2b-backend-1:/data/raw/libtheses.json
+docker exec b2b-backend-1 ls -la /data/raw/
+docker compose exec backend python scripts/seed.py --file /data/raw/libtheses.json
 ```
 
 Проверка функционала:
