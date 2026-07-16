@@ -1,93 +1,207 @@
 import { useEffect, useState } from "react";
-import { Table, Input, Select, Card, Row, Col, Tag, Button, Segmented, message } from "antd";
+import {
+    Table,
+    Input,
+    Select,
+    Card,
+    Row,
+    Col,
+    Tag,
+    Button,
+    Segmented,
+    message
+} from "antd";
 import { useNavigate } from "react-router-dom";
 import { getCuratorArtifacts } from "../../api/curator";
 import { getAll } from "../../api/tags";
 import type { Artifact, Tag as TagType } from "../../api/types";
 
 export default function Queue() {
-    const navigate = useNavigate();
-    const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-    const [allTags, setAllTags] = useState<TagType[]>([]);
-    const [status, setStatus] = useState<string>("draft");
-    const [loading, setLoading] = useState(false);
-    const [search, setSearch] = useState("");
-    const [authorSearch, setAuthorSearch] = useState("");
-    const [yearFilter, setYearFilter] = useState<number>();
-    const [typeFilter, setTypeFilter] = useState("");
-    const [tagFilter, setTagFilter] = useState<number[]>([]);
 
-    useEffect(() => { loadArtifacts(); }, [status]);
-    useEffect(() => { loadTags(); }, []);
+    const navigate = useNavigate();
+
+    const [artifacts, setArtifacts] =
+        useState<Artifact[]>([]);
+
+    const [allTags, setAllTags] =
+        useState<TagType[]>([]);
+
+    const [status, setStatus] =
+        useState<string>("all");
+
+    const [loading, setLoading] =
+        useState(false);
+
+    const [search, setSearch] =
+        useState("");
+
+    const [authorSearch, setAuthorSearch] =
+        useState("");
+
+    const [yearFilter, setYearFilter] =
+        useState<number>();
+
+    const [typeFilter, setTypeFilter] =
+        useState("");
+
+    const [tagFilter, setTagFilter] =
+        useState<number[]>([]);
+
+
+    useEffect(() => {
+        loadArtifacts();
+    }, [status]);
+
+
+    useEffect(() => {
+        loadTags();
+    }, []);
+
+
 
     async function loadArtifacts() {
 
         try {
+
             setLoading(true);
-            const data = await getCuratorArtifacts(
-                status === "all"
-                    ? undefined
-                    : status
-            );
-            setArtifacts(data);
+
+            const data =
+                await getCuratorArtifacts(
+                    status === "all"
+                        ? undefined
+                        : status
+                );
+
+
+            const sorted =
+                [...data].sort(
+                    (a, b) =>
+                        new Date(b.created_at).getTime()
+                        -
+                        new Date(a.created_at).getTime()
+                );
+
+
+            setArtifacts(sorted);
+
 
         } catch {
-            message.error("Ошибка загрузки работ");
+
+            message.error(
+                "Ошибка загрузки работ"
+            );
 
         } finally {
+
             setLoading(false);
+
         }
+
     }
 
+
+
     async function loadTags() {
+
         try {
-            const data = await getAll();
+
+            const data =
+                await getAll();
+
             setAllTags(data);
+
         } catch {
+
             message.error(
                 "Ошибка загрузки тегов"
             );
+
         }
+
     }
+
+
 
     function getYear(date: string) {
+
         return new Date(date).getFullYear();
+
     }
 
-    const filteredArtifacts = artifacts.filter(artifact => {
-        const matchesTitle = artifact.title.toLowerCase().includes(search.toLowerCase());
 
-        const matchesAuthor = !authorSearch || artifact.author_name?.toLowerCase()
-            .includes(authorSearch.toLowerCase());
 
-        const matchesYear = !yearFilter || getYear(artifact.created_at) === yearFilter;
+    const filteredArtifacts =
+        artifacts.filter(artifact => {
 
-        const matchesType = !typeFilter || artifact.type === typeFilter;
+            const matchesTitle =
+                artifact.title
+                    .toLowerCase()
+                    .includes(
+                        search.toLowerCase()
+                    );
 
-        const matchesTags = tagFilter.length === 0 || artifact.tags.some(tag => tagFilter.includes(tag.id));
 
-        return (
-            matchesTitle &&
-            matchesAuthor &&
-            matchesYear &&
-            matchesType &&
-            matchesTags
-        );
-    }
-    );
+            const matchesAuthor =
+                !authorSearch ||
+                artifact.author_name
+                    ?.toLowerCase()
+                    .includes(
+                        authorSearch.toLowerCase()
+                    );
+
+
+            const matchesYear =
+                !yearFilter ||
+                getYear(
+                    artifact.created_at
+                ) === yearFilter;
+
+
+            const matchesType =
+                !typeFilter ||
+                artifact.type === typeFilter;
+
+
+            const matchesTags =
+                tagFilter.length === 0 ||
+                artifact.tags.some(
+                    tag =>
+                        tagFilter.includes(
+                            tag.id
+                        )
+                );
+
+
+            return (
+                matchesTitle &&
+                matchesAuthor &&
+                matchesYear &&
+                matchesType &&
+                matchesTags
+            );
+
+        });
+
+
 
     const columns = [
+
         {
             title: "Название",
             dataIndex: "title",
             key: "title"
         },
+
+
         {
             title: "Тип",
             dataIndex: "type",
             key: "type",
+
             render: (type: string) => (
+
                 <Tag>
+
                     {
                         {
                             vkr: "ВКР",
@@ -96,183 +210,422 @@ export default function Queue() {
                             event: "Мероприятие"
                         }[type] || type
                     }
+
                 </Tag>
+
             )
+
         },
+
 
         {
             title: "Автор",
             dataIndex: "author_name",
             key: "author_name",
-            render: (value: string) => value || "Не указан"
+
+            render: (value: string) =>
+                value || "Не указан"
+
         },
+
+
         {
             title: "Год",
             key: "year",
-            render: (_: unknown, record: Artifact
-            ) => getYear(record.created_at)
+
+            render: (
+                _: unknown,
+                record: Artifact
+            ) =>
+                getYear(
+                    record.created_at
+                )
+
         },
+
 
         {
             title: "Теги",
             key: "tags",
-            render: (_: unknown, record: Artifact
+
+            render: (
+                _: unknown,
+                record: Artifact
             ) => (
+
                 <>
+
                     {
                         record.tags.map(
                             tag => (
-                                <Tag key={tag.id}>
+
+                                <Tag
+                                    key={tag.id}
+                                >
                                     {tag.name}
                                 </Tag>
+
                             )
                         )
                     }
+
                 </>
+
             )
+
         },
+
 
         {
             title: "Действия",
             key: "actions",
-            render: (_: unknown, record: Artifact
+
+            render: (
+                _: unknown,
+                record: Artifact
             ) => (
+
                 <Button
                     type="primary"
-                    onClick={() => {
-                        navigate(`/curator/artifact/${record.id}`);
-                    }}
+                    onClick={() =>
+                        navigate(
+                            `/curator/artifact/${record.id}`
+                        )
+                    }
                 >
                     Открыть
                 </Button>
+
             )
+
         }
+
     ];
 
+
+
     return (
+
         <div className="page-container">
-            <h1 style={{ marginBottom: 24 }}>
-                Управление публикациями
-            </h1>
+
+
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 24
+                }}
+            >
+
+                <h2
+                    style={{
+                        margin: 0
+                    }}
+                >
+                    📚 Управление публикациями
+                </h2>
+
+            </div>
+
+
+
+            <Card
+                style={{
+                    marginBottom: 24,
+                    background: "#f0f7ff",
+                    borderColor: "#00AEEF"
+                }}
+            >
+
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-around"
+                    }}
+                >
+
+                    <div
+                        style={{
+                            textAlign: "center"
+                        }}
+                    >
+
+                        <div
+                            style={{
+                                fontSize: 18,
+                                fontWeight: 600,
+                                color: "#00AEEF"
+                            }}
+                        >
+                            {artifacts.length}
+                        </div>
+
+                        <div>
+                            Всего работ
+                        </div>
+
+                    </div>
+
+
+
+                    <div
+                        style={{
+                            textAlign: "center"
+                        }}
+                    >
+
+                        <div
+                            style={{
+                                fontSize: 18,
+                                fontWeight: 600,
+                                color: "#52c41a"
+                            }}
+                        >
+                            {
+                                artifacts.filter(
+                                    a =>
+                                        a.curator_status === "approved"
+                                ).length
+                            }
+                        </div>
+
+                        <div>
+                            Одобрено
+                        </div>
+
+                    </div>
+
+
+
+                    <div
+                        style={{
+                            textAlign: "center"
+                        }}
+                    >
+
+                        <div
+                            style={{
+                                fontSize: 18,
+                                fontWeight: 600,
+                                color: "#faad14"
+                            }}
+                        >
+                            {
+                                artifacts.filter(
+                                    a =>
+                                        a.curator_status === "draft"
+                                ).length
+                            }
+                        </div>
+
+                        <div>
+                            На проверке
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </Card>
+
+
 
             <Segmented
+
                 value={status}
-                onChange={(value) => setStatus(value.toString())}
+
+                onChange={(value) =>
+                    setStatus(
+                        value.toString()
+                    )
+                }
+
                 options={[
                     {
-                        label: "Все",
-                        value: "all"
+                        label:
+                            "Все",
+                        value:
+                            "all"
                     },
                     {
-                        label: "На проверке",
-                        value: "draft"
+                        label:
+                            "На проверке",
+                        value:
+                            "draft"
                     },
                     {
-                        label: "Одобренные",
-                        value: "approved"
+                        label:
+                            "Одобренные",
+                        value:
+                            "approved"
                     },
                     {
-                        label: "Отказано",
-                        value: "rejected"
+                        label:
+                            "Отказано",
+                        value:
+                            "rejected"
                     }
                 ]}
-                style={{ marginBottom: 24 }}
+
+                style={{
+                    marginBottom: 24
+                }}
+
             />
 
-            <Row
-                gutter={16}
-                style={{ marginBottom: 24 }}
-            >
-                <Col span={6}>
-                    <Card title="Всего" size="small">
-                        {artifacts.length}
-                    </Card>
-                </Col>
 
-                <Col span={6}>
-                    <Card title="Показано" size="small">
-                        {filteredArtifacts.length}
-                    </Card>
-                </Col>
-            </Row>
 
             <Row
                 gutter={16}
-                style={{ marginBottom: 24 }}
+                style={{
+                    marginBottom: 24
+                }}
             >
+
                 <Col span={5}>
+
                     <Input
                         placeholder="Название"
-                        onChange={e => setSearch(e.target.value)}
-                    />
-                </Col>
-
-                <Col span={5}>
-                    <Input
-                        placeholder="Автор"
-                        onChange={e => setAuthorSearch(e.target.value)
+                        onChange={e =>
+                            setSearch(
+                                e.target.value
+                            )
                         }
                     />
+
                 </Col>
 
+
+                <Col span={5}>
+
+                    <Input
+                        placeholder="Автор"
+                        onChange={e =>
+                            setAuthorSearch(
+                                e.target.value
+                            )
+                        }
+                    />
+
+                </Col>
+
+
                 <Col span={4}>
+
                     <Select
+
                         allowClear
+
                         placeholder="Год"
-                        style={{ width: "100%" }}
-                        onChange={setYearFilter}
+
+                        style={{
+                            width: "100%"
+                        }}
+
+                        onChange={
+                            setYearFilter
+                        }
+
                         options={[
                             ...new Set(
                                 artifacts.map(
-                                    item => getYear(item.created_at)
+                                    item =>
+                                        getYear(
+                                            item.created_at
+                                        )
                                 )
                             )
                         ].map(
                             year => ({
-                                label: year,
-                                value: year
+                                label:
+                                    year,
+                                value:
+                                    year
                             })
                         )}
+
                     />
+
                 </Col>
 
+
                 <Col span={5}>
+
                     <Select
+
                         allowClear
+
                         placeholder="Тип"
-                        style={{ width: "100%" }}
-                        onChange={value => setTypeFilter(value || "")}
+
+                        style={{
+                            width: "100%"
+                        }}
+
+                        onChange={
+                            value =>
+                                setTypeFilter(
+                                    value || ""
+                                )
+                        }
+
                         options={[
                             {
-                                label: "ВКР",
-                                value: "vkr"
+                                label:
+                                    "ВКР",
+                                value:
+                                    "vkr"
                             },
                             {
-                                label: "Статья",
-                                value: "article"
+                                label:
+                                    "Статья",
+                                value:
+                                    "article"
                             },
                             {
-                                label: "Доклад",
-                                value: "talk"
+                                label:
+                                    "Доклад",
+                                value:
+                                    "talk"
                             },
                             {
-                                label: "Мероприятие",
-                                value: "event"
+                                label:
+                                    "Мероприятие",
+                                value:
+                                    "event"
                             }
                         ]}
+
                     />
+
                 </Col>
 
+
                 <Col span={5}>
+
                     <Select
+
                         mode="multiple"
+
                         allowClear
+
                         showSearch
+
                         placeholder="Теги"
-                        style={{ width: "100%" }}
+
+                        style={{
+                            width: "100%"
+                        }}
+
                         value={tagFilter}
-                        onChange={setTagFilter}
+
+                        onChange={
+                            setTagFilter
+                        }
+
                         optionFilterProp="label"
+
                         options={
                             allTags.map(
                                 tag => ({
@@ -283,20 +636,41 @@ export default function Queue() {
                                 })
                             )
                         }
+
                     />
+
                 </Col>
+
+
             </Row>
 
+
+
             <Table
+
                 rowKey="id"
+
                 loading={loading}
+
                 columns={columns}
-                dataSource={filteredArtifacts}
+
+                dataSource={
+                    filteredArtifacts
+                }
+
                 pagination={{
                     pageSize: 10,
-                    showTotal: (total, range) =>`${range[0]}-${range[1]} из ${total}`
+
+                    showTotal:
+                        (total, range) =>
+                            `${range[0]}-${range[1]} из ${total}`
                 }}
+
             />
+
+
         </div>
+
     );
+
 }
