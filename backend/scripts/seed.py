@@ -240,6 +240,31 @@ ARTIFACTS = [
         "job_status": "employed",
         "tag_names": ["машинное обучение", "нейросети"],
     },
+    # Добавьте в ARTIFACTS:
+    {
+        "title": "Новая ВКР на модерации",
+        "type": "vkr",
+        "annotation": "Работа ожидает проверки куратора",
+        "curator_status": "draft",
+        "read_policy": "requires_approval",
+        "file_path": "https://vkr.utmn-demo.ru/works/draft1",
+        "author_full_name": "Иванов Дмитрий Сергеевич",
+        "program": "09.03.02 Информационные системы и технологии",
+        "job_status": "searching",
+        "tag_names": ["информационные системы", "цифровизация"],
+    },
+    {
+        "title": "Статья на проверке",
+        "type": "article",
+        "annotation": "Статья ожидает одобрения куратора",
+        "curator_status": "draft",
+        "read_policy": "requires_approval",
+        "file_path": "https://articles.utmn-demo.ru/draft-article.pdf",
+        "author_full_name": "Петров Иван Сергеевич",
+        "program": "02.03.03 Математическое обеспечение и администрирование информационных систем",
+        "job_status": "searching",
+        "tag_names": ["машинное обучение", "AI"],
+    },
 ]
 
 # ============================================================

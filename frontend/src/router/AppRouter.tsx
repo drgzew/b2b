@@ -9,6 +9,7 @@ import PartnerInternships from '../pages/partner/PartnerInternships';
 
 import AuthorDashboard from '../pages/author/AuthorDashboard';
 import AuthorRequests from '../pages/author/AuthorRequests';
+import AuthorInternships from '../pages/author/AuthorInternships';
 import AuthorLayout from '../layouts/AuthorLayout';
 
 import AuthorProfile from '../pages/profile/AuthorProfile';
@@ -16,9 +17,7 @@ import TeacherProfile from '../pages/profile/TeacherProfile';
 
 import Queue from '../pages/curator/Queue';
 import ArtifactPage from '../pages/curator/ArtifactPage';
-// import Requests from '../pages/curator/Requests';
 import MyArtifacts from '../pages/participant/MyArtifacts';
-
 import AdminPanel from '../pages/admin/AdminPanel';
 import CuratorRequests from '../pages/curator/CuratorRequests';
 
@@ -39,6 +38,7 @@ const AppRouter = () => {
       <Route path="/author" element={<AuthorLayout />}>
         <Route path="dashboard" element={<AuthorDashboard />} />
         <Route path="requests" element={<AuthorRequests />} />
+        <Route path="internships" element={<AuthorInternships />} />
       </Route>
 
       {/* Профили */}

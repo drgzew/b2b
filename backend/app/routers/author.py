@@ -1,13 +1,12 @@
 from datetime import datetime
 from typing import List, Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
 from ..access import grant_read_access
 from ..converters import to_artifact_read
 from ..db import get_session
-from ..models import Artifact, Author, Request as RequestModel, User
+from ..models import Artifact, Author, Internship, Request as RequestModel, User
 from ..schemas import (
     ArtifactRead,
     AuthorJobStatusUpdate,
@@ -16,6 +15,7 @@ from ..schemas import (
     ReadPolicyUpdate,
     RequestDecision,
     RequestRead,
+    InternshipResponse,
 )
 from ..security import require_role
 
@@ -48,17 +48,12 @@ def update_my_job_status(
     user: User = Depends(require_role("author")),
     session: Session = Depends(get_session),
 ):
-    """Самостоятельный выбор статуса в кабинете автора — в отличие от
-    PATCH /authors/{id}/job-status в routers/authors.py, который тот же статус
-    меняет от лица куратора/админа (например, со слов автора).
-    """
     valid_statuses = {"searching", "not_searching", "employed"}
     if data.job_status not in valid_statuses:
         raise HTTPException(
             status_code=400,
             detail=f"job_status must be one of {sorted(valid_statuses)}",
         )
-
     author = _get_own_author_or_400(user, session)
     author.job_status = data.job_status
     session.add(author)
@@ -79,8 +74,6 @@ def list_my_artifacts(
 def _get_own_artifact_or_404(artifact_id: int, author: Author, session: Session) -> Artifact:
     artifact = session.get(Artifact, artifact_id)
     if not artifact or artifact.author_id != author.id:
-        # 404, а не 403 — не подтверждаем сам факт существования чужого артефакта,
-        # тот же принцип, что и у Subscription/Internship в routers/partner.py.
         raise HTTPException(status_code=404, detail="Artifact not found")
     return artifact
 
@@ -92,19 +85,14 @@ def update_read_policy(
     user: User = Depends(require_role("author")),
     session: Session = Depends(get_session),
 ):
-    """Автор решает: открыть работу для чтения всем партнёрам сразу ('open')
-    или требовать подтверждение на каждый запрос ('requires_approval', дефолт — 'по умолчанию стоит запрет').
-    """
     valid = {"open", "requires_approval"}
     if data.read_policy not in valid:
         raise HTTPException(
             status_code=400,
             detail=f"read_policy must be one of {sorted(valid)}",
         )
-
     author = _get_own_author_or_400(user, session)
     artifact = _get_own_artifact_or_404(artifact_id, author, session)
-
     artifact.read_policy = data.read_policy
     session.add(artifact)
     session.commit()
@@ -117,21 +105,16 @@ def list_my_requests(
     user: User = Depends(require_role("author")),
     session: Session = Depends(get_session),
 ):
-    """Список запросов на полный текст артефактов автора."""
     author = _get_own_author_or_400(user, session)
-
     artifacts = session.exec(
         select(Artifact).where(Artifact.author_id == author.id)
     ).all()
     artifact_ids = [a.id for a in artifacts]
-
     if not artifact_ids:
         return []
-
     requests = session.exec(
         select(RequestModel).where(RequestModel.artifact_id.in_(artifact_ids))
     ).all()
-
     result = []
     for req in requests:
         artifact = next((a for a in artifacts if a.id == req.artifact_id), None)
@@ -148,7 +131,6 @@ def list_my_requests(
                 created_at=req.created_at,
             )
         )
-
     return result
 
 
@@ -159,39 +141,29 @@ def decide_on_request(
     user: User = Depends(require_role("author")),
     session: Session = Depends(get_session),
 ):
-    """Автор принимает или отклоняет запрос на полный текст от партнёра.
-    Если approve=True — выдаём доступ через PartnerArtifactAccess.
-    """
     author = _get_own_author_or_400(user, session)
-
     req = session.get(RequestModel, request_id)
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
-
     artifact = session.get(Artifact, req.artifact_id)
     if not artifact or artifact.author_id != author.id:
         raise HTTPException(status_code=404, detail="Request not found")
-
     if req.type != "full_text":
         raise HTTPException(
             status_code=400, detail="Only full_text requests can be decided by author"
         )
-
     if req.status != "sent":
         raise HTTPException(
             status_code=400, detail=f"Request already in status '{req.status}'"
         )
-
     if data.approve:
         req.status = "approved"
         grant_read_access(session, req.artifact_id, req.partner_id)
     else:
         req.status = "rejected"
-
     session.add(req)
     session.commit()
     session.refresh(req)
-
     partner = req.partner
     return AuthorRequestRead(
         id=req.id,
@@ -203,3 +175,64 @@ def decide_on_request(
         status=req.status,
         created_at=req.created_at,
     )
+
+
+@router.get("/internships", response_model=List[dict])
+def get_my_internships(
+    user: User = Depends(require_role("author")),
+    session: Session = Depends(get_session),
+):
+    """Получить все приглашения на стажировку для текущего автора."""
+    author = _get_own_author_or_400(user, session)
+    artifacts = session.exec(
+        select(Artifact).where(Artifact.author_id == author.id)
+    ).all()
+    artifact_ids = [a.id for a in artifacts]
+    if not artifact_ids:
+        return []
+    internships = session.exec(
+        select(Internship).where(Internship.artifact_id.in_(artifact_ids))
+    ).all()
+
+    result = []
+    for inv in internships:
+        artifact = next((a for a in artifacts if a.id == inv.artifact_id), None)
+        result.append({
+            "id": inv.id,
+            "artifact_id": inv.artifact_id,
+            "partner_id": inv.partner_id,
+            "partner_name": inv.partner.name if inv.partner else None,
+            "status": inv.status,
+            "student_name": inv.student_name,
+            "created_at": inv.created_at,
+            "response_date": inv.response_date,
+            "artifact_title": artifact.title if artifact else None,
+        })
+    return result
+
+
+@router.post("/internships/{internship_id}/respond", response_model=dict)
+def respond_to_internship(
+    internship_id: int,
+    data: InternshipResponse,
+    user: User = Depends(require_role("author")),
+    session: Session = Depends(get_session),
+):
+    """Автор принимает или отклоняет приглашение на стажировку."""
+    author = _get_own_author_or_400(user, session)
+    inv = session.get(Internship, internship_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Internship not found")
+    artifact = session.get(Artifact, inv.artifact_id)
+    if not artifact or artifact.author_id != author.id:
+        raise HTTPException(status_code=404, detail="Internship not found")
+    if inv.status != "sent":
+        raise HTTPException(
+            status_code=400, detail=f"Cannot respond to internship in status '{inv.status}'"
+        )
+    inv.status = "accepted" if data.accept else "rejected"
+    inv.response_date = datetime.utcnow()
+    session.add(inv)
+    session.commit()
+    session.refresh(inv)
+    return {"id": inv.id, "status": inv.status}

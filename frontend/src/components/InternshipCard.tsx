@@ -13,13 +13,18 @@ interface InternshipCardProps {
 
 const statusMap: Record<string, { label: string; color: string }> = {
   sent: { label: 'Отправлено', color: 'blue' },
-  accepted: { label: 'Принято студентом', color: 'green' },
+  accepted: { label: 'Принято', color: 'green' },
   in_progress: { label: 'В процессе', color: 'orange' },
-  rejected: { label: 'Отклонено студентом', color: 'red' },
+  rejected: { label: 'Отклонено', color: 'red' },
   completed: { label: 'Завершено', color: 'purple' },
+  cancelled: { label: 'Отменено', color: 'default' },
 };
 
-const InternshipCard: React.FC<InternshipCardProps> = ({ internship, showControls = false, onStatusChange }) => {
+const InternshipCard: React.FC<InternshipCardProps> = ({
+  internship,
+  showControls = false,
+  onStatusChange,
+}) => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
   const status = statusMap[internship.status] || { label: internship.status, color: 'default' };
@@ -35,19 +40,27 @@ const InternshipCard: React.FC<InternshipCardProps> = ({ internship, showControl
     setLoading(true);
     try {
       await onStatusChange(internship.id, newStatus);
-      message.success(`Статус обновлён`);
+      message.success(`Статус обновлён на "${statusMap[newStatus]?.label || newStatus}"`);
     } catch (error: any) {
-      message.error(error.response?.data?.detail || 'Ошибка');
+      message.error(error.response?.data?.detail || 'Ошибка обновления статуса');
     } finally {
       setLoading(false);
     }
   };
 
-  const allowedActions = {
-    sent: ['accepted', 'rejected'],
-    accepted: ['in_progress', 'rejected'],
-    in_progress: ['completed', 'rejected'],
-  };
+  // Действия для партнёра (showControls)
+  const actions = [];
+  if (showControls && onStatusChange) {
+    if (internship.status === 'sent') {
+      actions.push(
+        <Button key="cancel" size="small" danger onClick={() => handleStatusChange('cancelled')} loading={loading}>
+          Отменить
+        </Button>
+      );
+      // Также можно добавить другие кнопки, но они уже есть в PartnerInternships
+    }
+    // Можно добавить другие кнопки для других статусов, но сейчас ограничимся отменой
+  }
 
   return (
     <Card style={{ marginBottom: 16 }}>
@@ -77,16 +90,9 @@ const InternshipCard: React.FC<InternshipCardProps> = ({ internship, showControl
       <div style={{ marginTop: 8 }}>
         <Tag color={status.color}>{status.label}</Tag>
       </div>
-      {showControls && onStatusChange && internship.status in allowedActions && (
+      {showControls && actions.length > 0 && (
         <Space style={{ marginTop: 12 }}>
-          {allowedActions[internship.status as keyof typeof allowedActions].map(action => (
-            <Button key={action} size="small" loading={loading} onClick={() => handleStatusChange(action)}>
-              {action === 'accepted' ? 'Принять' :
-               action === 'rejected' ? 'Отклонить' :
-               action === 'in_progress' ? 'Начать' :
-               action === 'completed' ? 'Завершить' : action}
-            </Button>
-          ))}
+          {actions}
         </Space>
       )}
     </Card>

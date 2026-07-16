@@ -1,21 +1,20 @@
 """Workflow статусов Internship:
 sent -> accepted -> in_progress -> rejected|completed.
-"rejected" оставлен доступным из sent/accepted/in_progress — на практике партнёр
-или куратор может отказаться на любом шаге, не только в конце.
-"completed" достижим только после in_progress — нельзя завершить стажировку,
-которая не была принята и не шла.
+"rejected" и "cancelled" доступны из sent/accepted/in_progress.
+"completed" достижим только после in_progress.
 """
 
 from typing import Dict, Set
 
-ALL_STATUSES = {"sent", "accepted", "in_progress", "rejected", "completed"}
+ALL_STATUSES = {"sent", "accepted", "in_progress", "rejected", "completed", "cancelled"}
 
 ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
-    "sent": {"accepted", "rejected"},
+    "sent": {"accepted", "rejected", "cancelled"},
     "accepted": {"in_progress", "rejected"},
     "in_progress": {"completed", "rejected"},
-    "rejected": set(),      # терминальный статус
-    "completed": set(),     # терминальный статус
+    "rejected": set(),
+    "completed": set(),
+    "cancelled": set(),
 }
 
 

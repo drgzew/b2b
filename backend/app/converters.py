@@ -14,7 +14,7 @@ def to_artifact_read(artifact: Artifact) -> ArtifactRead:
         created_at=artifact.created_at,
         tags=[TagRead(id=tag.id, name=tag.name) for tag in artifact.tags],
         author_id=artifact.author_id,
-        author_name=artifact.author.full_name if artifact.author else None,
+        author_name=artifact.author.full_name if artifact.author else artifact.author_name,
         supervisor_id=artifact.supervisor_id,
         supervisor_name=artifact.supervisor.full_name if artifact.supervisor else None,
     )

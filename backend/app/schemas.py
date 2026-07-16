@@ -227,3 +227,6 @@ class RequestRead(SQLModel):
     type: str
     status: str
     created_at: datetime
+
+class InternshipResponse(SQLModel):
+    accept: bool

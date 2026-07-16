@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Typography, Button, Spin, Empty, message, Space, Tag } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { authorAPI } from '../../api/author';
 import type { AuthorRequest } from '../../api/types';
+import type { AuthorLayoutContextType } from '../../layouts/AuthorLayout';
 
 const { Title, Text } = Typography;
 
 const AuthorRequests: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshCounts } = useOutletContext<AuthorLayoutContextType>();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<AuthorRequest[]>([]);
 
@@ -32,6 +34,8 @@ const AuthorRequests: React.FC = () => {
       await authorAPI.decideOnRequest(requestId, approve);
       message.success(approve ? 'Доступ предоставлен' : 'Запрос отклонён');
       await fetchRequests();
+      // ✅ Обновляем счётчик в шапке
+      refreshCounts();
     } catch (error: any) {
       message.error(error.response?.data?.detail || 'Ошибка');
     }

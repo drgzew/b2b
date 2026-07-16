@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Typography, Button, Tag, Space, Progress } from 'antd';
+import { Card, Typography, Button, Tag, Space, Progress, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import type { Artifact } from '../api/types';
 
@@ -8,6 +8,7 @@ const { Title, Paragraph, Text } = Typography;
 interface ArtifactCardProps {
   artifact: Artifact;
   relevance?: number;
+  canRead?: boolean; // ✅ добавлено: доступен ли полный текст для чтения
   onRequestFullText: (artifactId: number) => void;
   onInternship: (artifactId: number) => void;
   onSaveFavorite: (artifactId: number) => void;
@@ -26,6 +27,7 @@ const getYear = (dateStr: string) => new Date(dateStr).getFullYear();
 const ArtifactCard: React.FC<ArtifactCardProps> = ({
   artifact,
   relevance,
+  canRead = false,
   onRequestFullText,
   onInternship,
   onSaveFavorite,
@@ -52,6 +54,26 @@ const ArtifactCard: React.FC<ArtifactCardProps> = ({
   };
 
   const relevancePercent = relevance !== undefined ? Math.round(relevance * 100) : undefined;
+
+  // ✅ Основная логика кнопки «Запросить полный текст»
+  const handleRead = () => {
+    if (canRead) {
+      // Если доступ уже есть — открываем файл
+      if (artifact.file_path) {
+        // Для ВКР — редирект, для статьи/доклада — открыть PDF в новой вкладке
+        if (artifact.type === 'vkr') {
+          window.location.href = artifact.file_path;
+        } else {
+          window.open(artifact.file_path, '_blank');
+        }
+      } else {
+        message.warning('Файл недоступен');
+      }
+    } else {
+      // Нет доступа — отправляем запрос
+      onRequestFullText(artifact.id);
+    }
+  };
 
   return (
     <Card style={{ marginBottom: 16 }}>
@@ -114,8 +136,12 @@ const ArtifactCard: React.FC<ArtifactCardProps> = ({
       )}
 
       <Space>
-        <Button type="primary" style={{ background: '#00AEEF' }} onClick={() => onRequestFullText(artifact.id)}>
-          📩 Запросить полный текст
+        <Button
+          type="primary"
+          style={{ background: '#00AEEF' }}
+          onClick={handleRead}  // ✅ теперь используется новая логика
+        >
+          {canRead ? '📄 Открыть полный текст' : '📩 Запросить полный текст'}
         </Button>
         <Button onClick={() => onInternship(artifact.id)}>
           💼 Пригласить на стажировку
