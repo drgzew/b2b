@@ -422,7 +422,7 @@ def map_tags_to_topic(tag_name: str) -> List[int]:
         "литературная критика": [10],
     }
     
-    program_lower = program.lower()
+    program_lower = tag_name.lower()
     for key, tags in program_to_tags.items():
         if key in program_lower:
             return tags[:3]
@@ -575,11 +575,11 @@ def seed(normalized_path: Optional[str] = None) -> None:
         author_emails, stud_emails = {}, {}
 
         # Создаём маппинг тегов для быстрого доступа
-        tag_id_to_topic_ids = {}
-        for tag_name, tag in tags_by_name.items():
-            topic_ids = map_tags_to_topic(tag_name)
-            if topic_ids:
-                tag_id_to_topic_ids[tag.id] = topic_ids
+        # tag_id_to_topic_ids = {}
+        # for tag_name, tag in tags_by_name.items():
+        #     topic_ids = map_tags_to_topic(tag_name)
+        #     if topic_ids:
+        #         tag_id_to_topic_ids[tag.id] = topic_ids
 
         for i, work in enumerate(normalized_data):
             title = work.get("title", f"Артефакт {i+1}")

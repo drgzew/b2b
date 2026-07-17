@@ -16,7 +16,7 @@ const PartnerDigest: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [entries, setEntries] = useState<DigestEntry[]>([]);
   const [filterTopicId, setFilterTopicId] = useState<number | undefined>(topicIdNum);
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedTagNames, setSelectedTagNames] = useState<string[]>([]);
   const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
@@ -70,19 +70,35 @@ const PartnerDigest: React.FC = () => {
     }
   };
 
+  const currentSub = subscriptions.find(s => s.id === filterTopicId);
+
   const availableTags = useMemo(() => {
-    const map = new Map<number, { id: number; name: string }>();
-    entries.forEach(e => e.artifact.tags.forEach(t => {
-      if (!map.has(t.id)) map.set(t.id, t);
-    }));
-    return Array.from(map.values());
-  }, [entries]);
+    if (filterTopicId && currentSub) {
+      // Конкретная подписка – берём её теги
+      return (currentSub.tags || []).map((t: string | { id: number; name: string }) =>
+        typeof t === 'string' ? t : t.name
+      );
+    } else {
+      // Все подписки – собираем уникальные теги из всех подписок
+      const tagSet = new Set<string>();
+      subscriptions.forEach(sub => {
+        (sub.tags || []).forEach((t: string | { id: number; name: string }) => {
+          const name = typeof t === 'string' ? t : t.name;
+          tagSet.add(name);
+        });
+      });
+      return Array.from(tagSet);
+    }
+  }, [filterTopicId, currentSub, subscriptions]);
 
   const filteredEntries = useMemo(() => {
     let result = entries;
-    if (selectedTagIds.length > 0) {
+    if (selectedTagNames.length > 0) {
       result = result.filter(e =>
-        e.artifact.tags.some(t => selectedTagIds.includes(t.id))
+        e.artifact.tags.some((t: string | { id: number; name: string }) => {
+          const name = typeof t === 'string' ? t : t.name;
+          return selectedTagNames.includes(name);
+        })
       );
     }
     if (searchText.trim()) {
@@ -90,15 +106,18 @@ const PartnerDigest: React.FC = () => {
       result = result.filter(e =>
         e.artifact.title.toLowerCase().includes(s) ||
         e.artifact.annotation.toLowerCase().includes(s) ||
-        e.artifact.tags.some(t => t.name.toLowerCase().includes(s))
+        e.artifact.tags.some((t: string | { id: number; name: string }) => {
+          const name = typeof t === 'string' ? t : t.name;
+          return name.toLowerCase().includes(s);
+        })
       );
     }
     return result;
-  }, [entries, selectedTagIds, searchText]);
+  }, [entries, selectedTagNames, searchText]);
 
-  const handleTagToggle = (tagId: number) => {
-    setSelectedTagIds(prev =>
-      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+  const handleTagToggle = (tagName: string) => {
+    setSelectedTagNames(prev =>
+      prev.includes(tagName) ? prev.filter(n => n !== tagName) : [...prev, tagName]
     );
   };
 
@@ -172,8 +191,6 @@ const PartnerDigest: React.FC = () => {
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '50px auto' }} />;
 
-  const currentSub = subscriptions.find(s => s.id === filterTopicId);
-
   return (
     <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -210,26 +227,27 @@ const PartnerDigest: React.FC = () => {
             <Text strong>Фильтр по тегам:</Text>
             <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               <Checkbox
-                checked={selectedTagIds.length === availableTags.length}
-                indeterminate={selectedTagIds.length > 0 && selectedTagIds.length < availableTags.length}
+                checked={selectedTagNames.length === availableTags.length}
+                indeterminate={selectedTagNames.length > 0 && selectedTagNames.length < availableTags.length}
                 onChange={() => {
-                  if (selectedTagIds.length === availableTags.length) {
-                    setSelectedTagIds([]);
+                  if (selectedTagNames.length === availableTags.length) {
+                    setSelectedTagNames([]);
                   } else {
-                    setSelectedTagIds(availableTags.map(t => t.id));
+                    setSelectedTagNames(availableTags);
                   }
                 }}
               >
                 Все
               </Checkbox>
-              {availableTags.map(tag => (
+
+              {availableTags.map(tagName => (
                 <Checkbox
-                  key={tag.id}
-                  checked={selectedTagIds.includes(tag.id)}
-                  onChange={() => handleTagToggle(tag.id)}
+                  key={tagName}
+                  checked={selectedTagNames.includes(tagName)}
+                  onChange={() => handleTagToggle(tagName)}
                 >
-                  <Tag color={selectedTagIds.includes(tag.id) ? '#00AEEF' : undefined}>
-                    {tag.name}
+                  <Tag color={selectedTagNames.includes(tagName) ? '#00AEEF' : undefined}>
+                    {tagName}
                   </Tag>
                 </Checkbox>
               ))}
