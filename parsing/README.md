@@ -59,22 +59,21 @@ python -m scripts.normalize
 
 ## Импорт данных в базу данных
 
-Пересоздать том для базы данных:
+`docker-compose.yml` монтирует `parsing/data` в контейнер `backend` по пути
+`/data` (read-only) — `scripts/seed.py` сам находит `normalized.json` там
+без дополнительных действий, ручной `docker cp` больше не нужен.
 
 ```cmd
-docker-compose down
-docker volume rm b2b_pgdata
 docker-compose up
+docker-compose exec db pg_isready -U app -d app
+docker compose exec backend python scripts/seed.py
 ```
 
-Выполнить в другом терминале:
+Если файл лежит не в `parsing/data/normalized.json`, а где-то ещё — передать
+путь явно (путь указывается **внутри контейнера**, а не на хосте):
 
 ```cmd
-docker-compose exec db pg_isready -U app -d app
-docker exec b2b-backend-1 mkdir -p /data/raw
-docker cp parsing/data/normalized.json b2b-backend-1:/data/normalized.json
-docker exec b2b-backend-1 ls -la /data/
-docker compose exec backend python scripts/seed.py --file /data/parsing/data/normalized.json
+docker compose exec backend python scripts/seed.py --file /data/normalized.json
 ```
 
 Проверка функционала:

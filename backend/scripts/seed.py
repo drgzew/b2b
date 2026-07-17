@@ -496,7 +496,52 @@ def seed(normalized_path: Optional[str] = None) -> None:
     init_db()
 
     with Session(engine) as session:
-        # 1. Очистка
+        # 1. Загружаем normalized.json — ДО очистки базы. Раньше проверка
+        # "есть ли данные" шла ПОСЛЕ TRUNCATE: если normalized.json не найден
+        # или пуст, скрипт печатал "Нет данных для импорта!" и молча
+        # завершался (return, exit code 0) — но TRUNCATE к этому моменту УЖЕ
+        # стирал партнёров/пользователей/артефакты. Итог: ни одного логина
+        # в базе, включая admin/curator, без единой явной ошибки. Теперь
+        # base не трогается, пока не подтверждено, что есть чем её наполнить.
+        normalized_data = []
+
+        if normalized_path:
+            normalized_data = load_normalized_data(normalized_path)
+
+        if not normalized_data:
+            default_paths = [
+                "data/normalized.json",
+                "../data/normalized.json",
+                "/data/normalized.json",
+                "../parsing/data/normalized.json",  # локальный запуск вне докера
+            ]
+            for path in default_paths:
+                normalized_data = load_normalized_data(path)
+                if normalized_data:
+                    break
+
+        if not normalized_data:
+            print("=" * 60)
+            print("ОШИБКА: не найдено ни одного артефакта для импорта.")
+            print("=" * 60)
+            print("Проверены пути: data/normalized.json, ../data/normalized.json,")
+            print("/data/normalized.json, ../parsing/data/normalized.json")
+            print()
+            print("normalized.json не версионируется в git (см. parsing/.gitignore)")
+            print("и не был найден ни по одному из стандартных путей.")
+            print()
+            print("Сначала сгенерируйте его:")
+            print("  cd parsing && python -m scripts.normalize")
+            print()
+            print("Либо передайте путь явно:")
+            print("  python scripts/seed.py --file /путь/до/normalized.json")
+            print()
+            print("База данных НЕ тронута — TRUNCATE не выполнялся.")
+            sys.exit(1)
+
+        print(f"Загружено {len(normalized_data)} артефактов")
+
+        # 2. Очистка — только теперь, когда точно есть чем наполнять заново
         print("Очистка базы данных...")
         session.execute(text("""
             TRUNCATE TABLE digestitem, request, artifacttag, subscriptiontag, 
@@ -506,7 +551,7 @@ def seed(normalized_path: Optional[str] = None) -> None:
         session.commit()
         print("База данных очищена")
 
-        # 2. Создаём теги — get-or-create по имени, а не merge по жёстким id:
+        # 3. Создаём теги — get-or-create по имени, а не merge по жёстким id:
         # таблица tag не входит в TRUNCATE выше, и после импорта/прошлых
         # прогонов теги могут существовать с другими id — merge по id=1..33
         # в этом случае падает на UNIQUE(name).
@@ -521,30 +566,6 @@ def seed(normalized_path: Optional[str] = None) -> None:
                     tags_by_name[tag.name] = tag
         session.commit()
         print(f"   Тегов в базе: {len(tags_by_name)}")
-
-        # 3. Загружаем данные из normalized.json
-        normalized_data = []
-
-        if normalized_path:
-            normalized_data = load_normalized_data(normalized_path)
-
-        # Если путь не указан или файл не найден, пробуем стандартные пути
-        if not normalized_data:
-            default_paths = [
-                "data/normalized.json",
-                "../data/normalized.json",
-                "/data/normalized.json",
-            ]
-            for path in default_paths:
-                normalized_data = load_normalized_data(path)
-                if normalized_data:
-                    break
-
-        if not normalized_data:
-            print("Нет данных для импорта!")
-            return
-
-        print(f"Загружено {len(normalized_data)} артефактов")
 
         source_counts = {}
         for work in normalized_data:

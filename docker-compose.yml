@@ -33,6 +33,11 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      # parsing/data не в git (см. parsing/.gitignore) — без этого монтирования
+      # seed.py внутри контейнера физически не видит normalized.json ни по одному
+      # из путей, которые сам же перебирает, и раньше падал в "нет данных для
+      # импорта" даже когда файл лежал на диске у разработчика.
+      - ./parsing/data:/data:ro
 
   frontend:
     build: ./frontend
